@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { getSupabase } from "./supabase";
 import type {
   Participant,
   ScorePrediction,
@@ -11,6 +11,7 @@ import { calcMatchPoints, calcGroupPoints } from "./scoring";
 export async function getOrCreateParticipant(
   name: string
 ): Promise<Participant | null> {
+  const supabase = getSupabase();
   const trimmed = name.trim();
   const { data: existing } = await supabase
     .from("participants")
@@ -36,6 +37,7 @@ export async function getOrCreateParticipant(
 export async function getScorePredictions(
   participantId: string
 ): Promise<ScorePrediction[]> {
+  const supabase = getSupabase();
   const { data } = await supabase
     .from("score_predictions")
     .select("*")
@@ -49,6 +51,7 @@ export async function upsertScorePrediction(
   predictedArgentina: number,
   predictedOpponent: number
 ): Promise<void> {
+  const supabase = getSupabase();
   await supabase.from("score_predictions").upsert(
     {
       participant_id: participantId,
@@ -64,6 +67,7 @@ export async function upsertScorePrediction(
 export async function getGroupPredictions(
   participantId: string
 ): Promise<GroupPrediction[]> {
+  const supabase = getSupabase();
   const { data } = await supabase
     .from("group_predictions")
     .select("*")
@@ -77,6 +81,7 @@ export async function upsertGroupPrediction(
   firstTeam: string,
   secondTeam: string
 ): Promise<void> {
+  const supabase = getSupabase();
   await supabase.from("group_predictions").upsert(
     {
       participant_id: participantId,
@@ -90,11 +95,13 @@ export async function upsertGroupPrediction(
 }
 
 export async function getMatchResults(): Promise<MatchResult[]> {
+  const supabase = getSupabase();
   const { data } = await supabase.from("match_results").select("*");
   return data ?? [];
 }
 
 export async function getGroupResults(): Promise<GroupResult[]> {
+  const supabase = getSupabase();
   const { data } = await supabase.from("group_results").select("*");
   return data ?? [];
 }
@@ -105,6 +112,7 @@ export async function upsertMatchResult(
   opponentScore: number,
   isFinal: boolean
 ): Promise<void> {
+  const supabase = getSupabase();
   await supabase.from("match_results").upsert(
     {
       match_id: matchId,
@@ -127,6 +135,7 @@ export async function upsertGroupResult(
   secondTeam: string,
   isFinal: boolean
 ): Promise<void> {
+  const supabase = getSupabase();
   await supabase.from("group_results").upsert(
     {
       group_id: groupId,
@@ -148,6 +157,7 @@ async function recalcMatchPoints(
   actualArg: number,
   actualOpp: number
 ): Promise<void> {
+  const supabase = getSupabase();
   const { data: predictions } = await supabase
     .from("score_predictions")
     .select("*")
@@ -174,6 +184,7 @@ async function recalcGroupPoints(
   actualFirst: string,
   actualSecond: string
 ): Promise<void> {
+  const supabase = getSupabase();
   const { data: predictions } = await supabase
     .from("group_predictions")
     .select("*")
@@ -196,6 +207,7 @@ async function recalcGroupPoints(
 }
 
 export async function getLeaderboard() {
+  const supabase = getSupabase();
   const { data: participants } = await supabase
     .from("participants")
     .select("*");
