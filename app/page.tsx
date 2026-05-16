@@ -24,7 +24,7 @@ export default function HomePage() {
     try {
       const participant = await getOrCreateParticipant(trimmed);
       if (!participant) {
-        setError("Hubo un error. Intentá de nuevo.");
+        setError("No se pudo guardar tu nombre. Verificá que el proyecto de Supabase esté activo.");
         return;
       }
       localStorage.setItem(
@@ -32,8 +32,11 @@ export default function HomePage() {
         JSON.stringify({ id: participant.id, name: participant.name })
       );
       router.push("/predict");
-    } catch {
-      setError("Hubo un error de conexión. Intentá de nuevo.");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(
+        "Error de conexión con Supabase. Verificá las variables de entorno en Vercel y que el proyecto no esté pausado."
+      );
     } finally {
       setLoading(false);
     }
