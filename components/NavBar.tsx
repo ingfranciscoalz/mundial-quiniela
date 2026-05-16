@@ -32,7 +32,7 @@ export default function NavBar() {
             className="object-contain"
           />
           <span className="font-bold text-slate-800 hidden sm:inline">
-            Geotellus
+            Fixture Geotellus
           </span>
           <span className="text-stone-300 hidden sm:inline">·</span>
           <span className="font-semibold text-geo hidden sm:inline text-sm">

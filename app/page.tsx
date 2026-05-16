@@ -54,12 +54,12 @@ export default function HomePage() {
               className="object-contain"
             />
           </div>
-          <p className="text-sm font-semibold text-geo uppercase tracking-widest mb-3">
-            Geotellus presenta
-          </p>
           <h1 className="text-4xl font-black text-slate-800 leading-tight">
-            Quiniela<br />Mundial 2026
+            Fixture<br />Geotellus
           </h1>
+          <p className="text-base font-semibold text-geo uppercase tracking-widest mt-2">
+            Mundial 2026
+          </p>
           <div className="flex items-center justify-center gap-2 mt-3">
             <span className="text-2xl">🇦🇷</span>
             <span className="text-slate-500 font-medium">Argentina en el Mundial</span>
@@ -121,7 +121,7 @@ export default function HomePage() {
         </div>
 
         <p className="text-center text-xs text-stone-400 mt-6">
-          Geotellus · Mundial 2026 🇦🇷
+          Fixture Geotellus · Mundial 2026 🇦🇷
         </p>
       </div>
     </div>

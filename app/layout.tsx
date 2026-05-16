@@ -6,7 +6,7 @@ import NavBar from "@/components/NavBar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Quiniela Mundial 2026 · Geotellus",
+  title: "Fixture Geotellus · Mundial 2026",
   description: "Predecí los partidos de Argentina en el Mundial 2026",
 };
 
