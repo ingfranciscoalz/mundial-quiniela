@@ -21,7 +21,7 @@ export default function NavBar() {
   ];
 
   return (
-    <nav className="bg-white border-b border-stone-100 sticky top-0 z-50">
+    <nav className="bg-black/40 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <Image
@@ -31,11 +31,11 @@ export default function NavBar() {
             height={28}
             className="object-contain"
           />
-          <span className="font-bold text-slate-800 hidden sm:inline">
+          <span className="font-bold text-white hidden sm:inline">
             Fixture Geotellus
           </span>
-          <span className="text-stone-300 hidden sm:inline">·</span>
-          <span className="font-semibold text-geo hidden sm:inline text-sm">
+          <span className="text-white/30 hidden sm:inline">·</span>
+          <span className="font-semibold text-geo-light hidden sm:inline text-sm">
             Mundial 2026
           </span>
         </Link>
@@ -49,7 +49,7 @@ export default function NavBar() {
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   pathname === l.href
                     ? "bg-geo text-white font-semibold"
-                    : "text-slate-600 hover:bg-stone-100 font-medium"
+                    : "text-white/70 hover:text-white hover:bg-white/10 font-medium"
                 }`}
               >
                 {l.label}
@@ -57,7 +57,7 @@ export default function NavBar() {
             ))}
 
           {user && (
-            <span className="ml-2 text-sm text-slate-400 hidden sm:block border-l border-stone-100 pl-3">
+            <span className="ml-2 text-sm text-white/50 hidden sm:block border-l border-white/10 pl-3">
               👋 {user.name}
             </span>
           )}

@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-stone-50 text-slate-900;
+    @apply text-slate-900;
   }
 }
 
@@ -14,15 +14,19 @@
   }
 
   .btn-secondary {
-    @apply bg-white hover:bg-stone-50 text-slate-700 font-semibold px-6 py-3 rounded-xl border border-stone-200 transition-colors;
+    @apply bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-xl border border-white/30 transition-colors;
   }
 
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-stone-100 p-6;
+    @apply bg-white rounded-2xl shadow-lg border border-stone-100 p-6;
+  }
+
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-2xl;
   }
 
   .score-input {
-    @apply w-16 h-16 text-center text-2xl font-bold border-2 border-stone-200 rounded-xl focus:border-geo focus:outline-none transition-colors;
+    @apply w-16 h-16 text-center text-2xl font-bold border-2 border-stone-200 rounded-xl focus:border-geo focus:outline-none transition-colors bg-white;
   }
 
   .tab-active {
@@ -31,5 +35,17 @@
 
   .tab-inactive {
     @apply text-slate-500 hover:text-slate-700 font-medium;
+  }
+
+  .page-bg {
+    @apply min-h-screen bg-cover bg-center bg-no-repeat relative;
+  }
+
+  .page-overlay {
+    @apply absolute inset-0 bg-black/55;
+  }
+
+  .page-content {
+    @apply relative z-10;
   }
 }
