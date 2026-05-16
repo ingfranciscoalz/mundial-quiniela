@@ -1,4 +1,4 @@
-import type { Group, ArgentinaMatch, Team } from "@/types";
+import type { Group, ArgentinaMatch, Team, KnockoutMatchConfig } from "@/types";
 
 export const ARGENTINA: Team = { id: "ARG", name: "Argentina", flag: "🇦🇷" };
 
@@ -140,6 +140,75 @@ export const ARGENTINA_MATCHES: ArgentinaMatch[] = [
     date: "2026-06-27",
     venue: "AT&T Stadium, Dallas",
     lockTime: "2026-06-27T23:00:00-03:00",
+  },
+];
+
+export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
+  {
+    id: "ARG-R32",
+    stage: "r32",
+    stageLabel: "Ronda de 32",
+    date: "2026-07-03",
+    venue: "Hard Rock Stadium, Miami",
+    lockTime: "2026-07-03T15:00:00-03:00",
+    bracketDescription:
+      "2° Grupo H si Argentina termina 1° · 1° Grupo H si termina 2°",
+    autoFillGroupIfFirst: "H",
+    autoFillPositionIfFirst: "second",
+    autoFillGroupIfSecond: "H",
+    autoFillPositionIfSecond: "first",
+  },
+  {
+    id: "ARG-R16",
+    stage: "r16",
+    stageLabel: "Octavos de Final",
+    date: "2026-07-07",
+    venue: "Mercedes-Benz Stadium, Atlanta",
+    lockTime: "2026-07-07T15:00:00-03:00",
+    bracketDescription: "Ganador del cruce Grupos D / G",
+    autoFillGroupIfFirst: null,
+    autoFillPositionIfFirst: "first",
+    autoFillGroupIfSecond: null,
+    autoFillPositionIfSecond: "first",
+  },
+  {
+    id: "ARG-QF",
+    stage: "qf",
+    stageLabel: "Cuartos de Final",
+    date: "2026-07-11",
+    venue: "Arrowhead Stadium, Kansas City",
+    lockTime: "2026-07-11T15:00:00-03:00",
+    bracketDescription: "Ganador del cruce Grupos K / L",
+    autoFillGroupIfFirst: null,
+    autoFillPositionIfFirst: "first",
+    autoFillGroupIfSecond: null,
+    autoFillPositionIfSecond: "first",
+  },
+  {
+    id: "ARG-SF",
+    stage: "sf",
+    stageLabel: "Semifinal",
+    date: "2026-07-15",
+    venue: "Mercedes-Benz Stadium, Atlanta",
+    lockTime: "2026-07-15T15:00:00-03:00",
+    bracketDescription: "Ganador de la otra llave (Grupos A/B/C/D)",
+    autoFillGroupIfFirst: null,
+    autoFillPositionIfFirst: "first",
+    autoFillGroupIfSecond: null,
+    autoFillPositionIfSecond: "first",
+  },
+  {
+    id: "ARG-FINAL",
+    stage: "final",
+    stageLabel: "Final",
+    date: "2026-07-19",
+    venue: "MetLife Stadium, East Rutherford, NJ",
+    lockTime: "2026-07-19T16:00:00-03:00",
+    bracketDescription: "Gran Final del Mundial 2026 🏆",
+    autoFillGroupIfFirst: null,
+    autoFillPositionIfFirst: "first",
+    autoFillGroupIfSecond: null,
+    autoFillPositionIfSecond: "first",
   },
 ];
 

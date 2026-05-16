@@ -25,6 +25,31 @@ export interface ArgentinaMatch {
   lockTime: string;
 }
 
+export interface KnockoutMatchConfig {
+  id: string;
+  stage: "r32" | "r16" | "qf" | "sf" | "final";
+  stageLabel: string;
+  date: string;
+  venue: string;
+  lockTime: string;
+  bracketDescription: string;
+  // Auto-fill: which group provides opponent and which position
+  autoFillGroupIfFirst: string | null;
+  autoFillPositionIfFirst: "first" | "second";
+  autoFillGroupIfSecond: string | null;
+  autoFillPositionIfSecond: "first" | "second";
+}
+
+export interface KnockoutMatchDB {
+  match_id: string;
+  opponent_name: string | null;
+  opponent_flag: string | null;
+  is_enabled: boolean;
+  argentina_score: number | null;
+  opponent_score: number | null;
+  is_final: boolean;
+}
+
 export interface ScorePrediction {
   id: string;
   participant_id: string;

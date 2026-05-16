@@ -4,13 +4,27 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { LocalUser, ScorePrediction, GroupPrediction, MatchResult, GroupResult } from "@/types";
-import { ARGENTINA_MATCHES, OTHER_GROUPS } from "@/lib/worldcupData";
-import { getScorePredictions, getGroupPredictions, getMatchResults, getGroupResults } from "@/lib/db";
+import type {
+  LocalUser,
+  ScorePrediction,
+  GroupPrediction,
+  MatchResult,
+  GroupResult,
+  KnockoutMatchDB,
+} from "@/types";
+import { ARGENTINA_MATCHES, OTHER_GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
+import {
+  getScorePredictions,
+  getGroupPredictions,
+  getMatchResults,
+  getGroupResults,
+  getKnockoutMatches,
+} from "@/lib/db";
 import ArgentinaMatchCard from "@/components/ArgentinaMatchCard";
 import GroupPredictionCard from "@/components/GroupPredictionCard";
+import KnockoutMatchCard from "@/components/KnockoutMatchCard";
 
-type Tab = "argentina" | "grupos";
+type Tab = "argentina" | "eliminatorias" | "grupos";
 
 export default function PredictPage() {
   const router = useRouter();
@@ -22,6 +36,7 @@ export default function PredictPage() {
   const [groupPreds, setGroupPreds] = useState<GroupPrediction[]>([]);
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [groupResults, setGroupResults] = useState<GroupResult[]>([]);
+  const [knockoutMatches, setKnockoutMatches] = useState<KnockoutMatchDB[]>([]);
 
   useEffect(() => {
     const stored = localStorage.getItem("mundial_user");
@@ -33,16 +48,18 @@ export default function PredictPage() {
 
   async function loadData(participantId: string) {
     setLoading(true);
-    const [sp, gp, mr, gr] = await Promise.all([
+    const [sp, gp, mr, gr, km] = await Promise.all([
       getScorePredictions(participantId),
       getGroupPredictions(participantId),
       getMatchResults(),
       getGroupResults(),
+      getKnockoutMatches(),
     ]);
     setScorePreds(sp);
     setGroupPreds(gp);
     setMatchResults(mr);
     setGroupResults(gr);
+    setKnockoutMatches(km);
     setLoading(false);
   }
 
@@ -51,9 +68,19 @@ export default function PredictPage() {
   const filledMatches = ARGENTINA_MATCHES.filter((m) =>
     scorePreds.some((p) => p.match_id === m.id)
   ).length;
+  const filledKnockout = KNOCKOUT_MATCHES.filter((m) =>
+    scorePreds.some((p) => p.match_id === m.id)
+  ).length;
+  const enabledKnockout = knockoutMatches.filter((m) => m.is_enabled).length;
   const filledGroups = OTHER_GROUPS.filter((g) =>
     groupPreds.some((p) => p.group_id === g.id)
   ).length;
+
+  const tabs = [
+    { id: "argentina" as Tab, label: "🇦🇷 Grupos", badge: `${filledMatches}/${ARGENTINA_MATCHES.length}` },
+    { id: "eliminatorias" as Tab, label: "⚡ Eliminatorias", badge: enabledKnockout > 0 ? `${filledKnockout}/${enabledKnockout}` : `${KNOCKOUT_MATCHES.length} partidos` },
+    { id: "grupos" as Tab, label: "🌍 Otros Grupos", badge: `${filledGroups}/${OTHER_GROUPS.length}` },
+  ];
 
   return (
     <div
@@ -67,32 +94,29 @@ export default function PredictPage() {
           <h1 className="text-2xl font-black text-white drop-shadow">
             Tus predicciones 🎯
           </h1>
-          <p className="text-white/60 text-sm mt-1">
-            {user.name} · Argentina: {filledMatches}/{ARGENTINA_MATCHES.length} · Grupos: {filledGroups}/{OTHER_GROUPS.length}
-          </p>
+          <p className="text-white/60 text-sm mt-1">{user.name}</p>
         </div>
 
-        <div className="flex gap-2 mb-6 bg-black/30 backdrop-blur-sm p-1 rounded-xl w-fit border border-white/10">
-          <button
-            onClick={() => setTab("argentina")}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              tab === "argentina"
-                ? "bg-white shadow text-geo font-semibold"
-                : "text-white/70 hover:text-white font-medium"
-            }`}
-          >
-            🇦🇷 Argentina
-          </button>
-          <button
-            onClick={() => setTab("grupos")}
-            className={`px-4 py-2 rounded-lg text-sm transition-colors ${
-              tab === "grupos"
-                ? "bg-white shadow text-geo font-semibold"
-                : "text-white/70 hover:text-white font-medium"
-            }`}
-          >
-            🌍 Otros Grupos
-          </button>
+        {/* Tabs */}
+        <div className="flex gap-1.5 mb-6 bg-black/30 backdrop-blur-sm p-1 rounded-xl border border-white/10 overflow-x-auto">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 min-w-fit px-3 py-2 rounded-lg text-sm transition-colors whitespace-nowrap ${
+                tab === t.id
+                  ? "bg-white shadow text-geo font-semibold"
+                  : "text-white/70 hover:text-white font-medium"
+              }`}
+            >
+              {t.label}
+              <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                tab === t.id ? "bg-geo/10 text-geo" : "bg-white/10 text-white/50"
+              }`}>
+                {t.badge}
+              </span>
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -101,6 +125,12 @@ export default function PredictPage() {
           </div>
         ) : tab === "argentina" ? (
           <div className="space-y-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 mb-2">
+              <p className="text-white/70 text-sm">
+                ⚽ Predecí el marcador exacto de los partidos de Argentina en la fase de grupos.
+                <span className="text-white/50 ml-1">(3 pts exacto · 1 pt resultado)</span>
+              </p>
+            </div>
             {ARGENTINA_MATCHES.map((match) => (
               <ArgentinaMatchCard
                 key={match.id}
@@ -111,15 +141,36 @@ export default function PredictPage() {
                 onSaved={() => loadData(user.id)}
               />
             ))}
-            <p className="text-center text-xs text-white/40 pt-2">
-              Los partidos eliminatorios se habilitan cuando Argentina clasifique.
-            </p>
+          </div>
+        ) : tab === "eliminatorias" ? (
+          <div className="space-y-4">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 mb-2">
+              <p className="text-white/70 text-sm">
+                ⚡ El rival de cada partido se calcula <strong className="text-white">automáticamente</strong> según tus predicciones anteriores.
+                Los partidos se habilitan a medida que Argentina avanza.
+              </p>
+            </div>
+            {KNOCKOUT_MATCHES.map((config) => (
+              <KnockoutMatchCard
+                key={config.id}
+                config={config}
+                dbMatch={knockoutMatches.find((m) => m.match_id === config.id)}
+                prediction={scorePreds.find((p) => p.match_id === config.id)}
+                participantId={user.id}
+                scorePreds={scorePreds}
+                groupPreds={groupPreds}
+                onSaved={() => loadData(user.id)}
+              />
+            ))}
           </div>
         ) : (
           <div>
-            <p className="text-sm text-white/70 mb-4">
-              Elegí el equipo que termina <strong className="text-white">1°</strong> y <strong className="text-white">2°</strong> en cada grupo. 1 punto por cada acierto.
-            </p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 mb-4">
+              <p className="text-white/70 text-sm">
+                Elegí el equipo que termina <strong className="text-white">1°</strong> y{" "}
+                <strong className="text-white">2°</strong> en cada grupo. 1 punto por cada acierto.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {OTHER_GROUPS.map((group) => (
                 <GroupPredictionCard

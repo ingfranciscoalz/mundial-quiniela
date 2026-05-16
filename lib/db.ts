@@ -5,6 +5,7 @@ import type {
   GroupPrediction,
   MatchResult,
   GroupResult,
+  KnockoutMatchDB,
 } from "@/types";
 import { calcMatchPoints, calcGroupPoints } from "./scoring";
 
@@ -203,6 +204,54 @@ async function recalcGroupPoints(
       .from("group_predictions")
       .update({ points: pts })
       .eq("id", pred.id);
+  }
+}
+
+export async function getKnockoutMatches(): Promise<KnockoutMatchDB[]> {
+  const supabase = getSupabase();
+  const { data } = await supabase.from("knockout_matches").select("*");
+  return data ?? [];
+}
+
+export async function upsertKnockoutMatch(
+  matchId: string,
+  opponentName: string,
+  opponentFlag: string,
+  isEnabled: boolean
+): Promise<void> {
+  const supabase = getSupabase();
+  await supabase.from("knockout_matches").upsert(
+    {
+      match_id: matchId,
+      opponent_name: opponentName,
+      opponent_flag: opponentFlag,
+      is_enabled: isEnabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "match_id" }
+  );
+}
+
+export async function upsertKnockoutResult(
+  matchId: string,
+  argentinaScore: number,
+  opponentScore: number,
+  isFinal: boolean
+): Promise<void> {
+  const supabase = getSupabase();
+  await supabase.from("knockout_matches").upsert(
+    {
+      match_id: matchId,
+      argentina_score: argentinaScore,
+      opponent_score: opponentScore,
+      is_final: isFinal,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "match_id" }
+  );
+
+  if (isFinal) {
+    await recalcMatchPoints(matchId, argentinaScore, opponentScore);
   }
 }
 
