@@ -51,7 +51,6 @@ export default function PredictPage() {
 
   if (!user) return null;
 
-  const totalMatches = ARGENTINA_MATCHES.length;
   const filledMatches = ARGENTINA_MATCHES.filter((m) =>
     scorePreds.some((p) => p.match_id === m.id)
   ).length;
@@ -63,31 +62,27 @@ export default function PredictPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-black text-slate-800">
-          Tus predicciones, {user.name} 🎯
+          Tus predicciones 🎯
         </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Argentina: {filledMatches}/{totalMatches} partidos ·{" "}
-          {filledGroups}/{OTHER_GROUPS.length} grupos
+        <p className="text-slate-400 text-sm mt-1">
+          {user.name} · Argentina: {filledMatches}/{ARGENTINA_MATCHES.length} ·{" "}
+          Grupos: {filledGroups}/{OTHER_GROUPS.length}
         </p>
       </div>
 
-      <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-xl w-fit">
+      <div className="flex gap-2 mb-6 bg-stone-100 p-1 rounded-xl w-fit">
         <button
           onClick={() => setTab("argentina")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            tab === "argentina"
-              ? "bg-white shadow text-argentina-blue"
-              : "text-slate-500 hover:text-slate-700"
+          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+            tab === "argentina" ? "tab-active" : "tab-inactive"
           }`}
         >
           🇦🇷 Argentina
         </button>
         <button
           onClick={() => setTab("grupos")}
-          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-            tab === "grupos"
-              ? "bg-white shadow text-argentina-blue"
-              : "text-slate-500 hover:text-slate-700"
+          className={`px-4 py-2 rounded-lg text-sm transition-colors ${
+            tab === "grupos" ? "tab-active" : "tab-inactive"
           }`}
         >
           🌍 Otros Grupos
@@ -96,7 +91,7 @@ export default function PredictPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20 text-slate-400">
-          Cargando...
+          <span className="animate-pulse">Cargando...</span>
         </div>
       ) : tab === "argentina" ? (
         <div className="space-y-4">
@@ -110,17 +105,15 @@ export default function PredictPage() {
               onSaved={() => loadData(user.id)}
             />
           ))}
-          <p className="text-center text-xs text-slate-400 pt-2">
-            Las predicciones de los partidos eliminatorios se habilitarán
-            cuando Argentina clasifique.
+          <p className="text-center text-xs text-stone-400 pt-2">
+            Los partidos eliminatorios se habilitan cuando Argentina clasifique.
           </p>
         </div>
       ) : (
         <div>
           <p className="text-sm text-slate-500 mb-4">
-            Para cada grupo, seleccioná el equipo que creés que termina{" "}
-            <strong>1°</strong> y <strong>2°</strong> (1 punto por cada
-            acierto).
+            Elegí el equipo que termina <strong>1°</strong> y <strong>2°</strong> en cada grupo.
+            1 punto por cada acierto.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {OTHER_GROUPS.map((group) => (

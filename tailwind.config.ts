@@ -9,11 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        argentina: {
-          blue: "#74ACDF",
-          sky: "#F6F6F6",
-          gold: "#F9A602",
+        geo: {
+          DEFAULT: "#C74A2A",
+          light: "#D96040",
+          dark: "#A33A1E",
+          bg: "#FDF4F1",
         },
+        arg: {
+          blue: "#74ACDF",
+          light: "#EBF4FB",
+        },
+      },
+      fontFamily: {
+        sans: ["Inter", "sans-serif"],
       },
     },
   },

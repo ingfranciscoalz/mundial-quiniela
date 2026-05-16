@@ -51,23 +51,25 @@ export default function GroupPredictionCard({
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-bold text-slate-700">Grupo {group.id}</h3>
+        <h3 className="font-bold text-slate-700 text-sm">
+          Grupo {group.id}
+        </h3>
         {isLocked ? (
-          <span className="text-xs bg-slate-100 text-slate-500 font-semibold px-2 py-0.5 rounded-full">
-            Finalizado
+          <span className="text-xs bg-stone-100 text-stone-500 font-semibold px-2 py-0.5 rounded-full">
+            Finalizado · {prediction?.points ?? 0}/2 pts
           </span>
         ) : prediction ? (
-          <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded-full">
-            ✅ Predicción guardada
+          <span className="text-xs bg-emerald-50 text-emerald-600 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
+            ✅ Guardado
           </span>
         ) : (
-          <span className="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">
-            Sin predicción
+          <span className="text-xs bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full border border-amber-200">
+            Sin completar
           </span>
         )}
       </div>
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-1.5 mb-3">
         {group.teams.map((team) => {
           const status = getTeamStatus(team.id);
           const predBadge = getPredBadge(team.id);
@@ -77,15 +79,13 @@ export default function GroupPredictionCard({
           return (
             <div
               key={team.id}
-              className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${
-                status
-                  ? "bg-emerald-50 border border-emerald-200"
-                  : "bg-slate-50"
+              className={`flex items-center justify-between px-3 py-2 rounded-xl transition-colors ${
+                status ? "bg-emerald-50 border border-emerald-100" : "bg-stone-50"
               }`}
             >
               <div className="flex items-center gap-2">
-                <span className="text-xl">{team.flag}</span>
-                <span className="text-sm font-medium text-slate-700">
+                <span className="text-lg">{team.flag}</span>
+                <span className="text-sm font-medium text-slate-600">
                   {team.name}
                 </span>
                 {status && (
@@ -102,10 +102,10 @@ export default function GroupPredictionCard({
                       setFirst(team.id);
                       if (second === team.id) setSecond("");
                     }}
-                    className={`px-2 py-1 text-xs rounded-lg font-semibold transition-colors ${
+                    className={`px-2 py-0.5 text-xs rounded-lg font-bold transition-colors ${
                       isPredFirst
-                        ? "bg-argentina-blue text-white"
-                        : "bg-white border border-slate-200 text-slate-500 hover:border-argentina-blue"
+                        ? "bg-geo text-white"
+                        : "bg-white border border-stone-200 text-stone-400 hover:border-geo hover:text-geo"
                     }`}
                   >
                     1°
@@ -115,10 +115,10 @@ export default function GroupPredictionCard({
                       setSecond(team.id);
                       if (first === team.id) setFirst("");
                     }}
-                    className={`px-2 py-1 text-xs rounded-lg font-semibold transition-colors ${
+                    className={`px-2 py-0.5 text-xs rounded-lg font-bold transition-colors ${
                       isPredSecond
-                        ? "bg-argentina-blue text-white"
-                        : "bg-white border border-slate-200 text-slate-500 hover:border-argentina-blue"
+                        ? "bg-geo text-white"
+                        : "bg-white border border-stone-200 text-stone-400 hover:border-geo hover:text-geo"
                     }`}
                   >
                     2°
@@ -130,7 +130,7 @@ export default function GroupPredictionCard({
                     className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                       predBadge === "correct"
                         ? "bg-emerald-100 text-emerald-700"
-                        : "bg-red-100 text-red-600"
+                        : "bg-red-50 text-red-500"
                     }`}
                   >
                     {predBadge === "correct" ? "+1pt" : "❌"}
@@ -148,18 +148,8 @@ export default function GroupPredictionCard({
           disabled={!first || !second || first === second || saving}
           className="btn-primary w-full py-2 text-sm"
         >
-          {saved
-            ? "✓ Guardado"
-            : saving
-            ? "Guardando..."
-            : "Guardar clasificados"}
+          {saved ? "✓ Guardado" : saving ? "Guardando..." : "Guardar clasificados"}
         </button>
-      )}
-
-      {isLocked && prediction && (
-        <p className="text-center text-xs text-slate-400">
-          Puntos obtenidos: <strong>{prediction.points ?? 0}</strong>/2
-        </p>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LocalUser } from "@/types";
@@ -20,15 +21,23 @@ export default function NavBar() {
   ];
 
   return (
-    <nav className="bg-white border-b border-slate-100 sticky top-0 z-50">
+    <nav className="bg-white border-b border-stone-100 sticky top-0 z-50">
       <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link
-          href="/"
-          className="flex items-center gap-2 font-bold text-lg text-slate-800"
-        >
-          <span>🏆</span>
-          <span className="hidden sm:inline">Mundial 2026</span>
-          <span className="sm:hidden">M26</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/geotellus-logo.png"
+            alt="Geotellus"
+            width={28}
+            height={28}
+            className="object-contain"
+          />
+          <span className="font-bold text-slate-800 hidden sm:inline">
+            Geotellus
+          </span>
+          <span className="text-stone-300 hidden sm:inline">·</span>
+          <span className="font-semibold text-geo hidden sm:inline text-sm">
+            Mundial 2026
+          </span>
         </Link>
 
         <div className="flex items-center gap-1">
@@ -37,10 +46,10 @@ export default function NavBar() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   pathname === l.href
-                    ? "bg-argentina-blue text-white"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? "bg-geo text-white font-semibold"
+                    : "text-slate-600 hover:bg-stone-100 font-medium"
                 }`}
               >
                 {l.label}
@@ -48,7 +57,7 @@ export default function NavBar() {
             ))}
 
           {user && (
-            <span className="ml-2 text-sm text-slate-500 hidden sm:block">
+            <span className="ml-2 text-sm text-slate-400 hidden sm:block border-l border-stone-100 pl-3">
               👋 {user.name}
             </span>
           )}
@@ -56,7 +65,7 @@ export default function NavBar() {
           {!user && (
             <Link
               href="/"
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-argentina-blue text-white"
+              className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-geo text-white"
             >
               Entrar
             </Link>
