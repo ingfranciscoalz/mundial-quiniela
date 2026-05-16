@@ -151,12 +151,12 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
     date: "2026-07-03",
     venue: "Hard Rock Stadium, Miami",
     lockTime: "2026-07-03T15:00:00-03:00",
-    bracketDescription:
-      "2° Grupo H si Argentina termina 1° · 1° Grupo H si termina 2°",
+    bracketDescription: "2° Grupo H si Argentina termina 1° · 1° Grupo H si termina 2°",
     autoFillGroupIfFirst: "H",
     autoFillPositionIfFirst: "second",
     autoFillGroupIfSecond: "H",
     autoFillPositionIfSecond: "first",
+    potentialOpponentGroups: ["H"],
   },
   {
     id: "ARG-R16",
@@ -170,6 +170,7 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
     autoFillPositionIfFirst: "first",
     autoFillGroupIfSecond: null,
     autoFillPositionIfSecond: "first",
+    potentialOpponentGroups: ["D", "G"],
   },
   {
     id: "ARG-QF",
@@ -183,6 +184,7 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
     autoFillPositionIfFirst: "first",
     autoFillGroupIfSecond: null,
     autoFillPositionIfSecond: "first",
+    potentialOpponentGroups: ["K", "L"],
   },
   {
     id: "ARG-SF",
@@ -196,6 +198,7 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
     autoFillPositionIfFirst: "first",
     autoFillGroupIfSecond: null,
     autoFillPositionIfSecond: "first",
+    potentialOpponentGroups: ["A", "B", "C", "D"],
   },
   {
     id: "ARG-FINAL",
@@ -209,6 +212,7 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
     autoFillPositionIfFirst: "first",
     autoFillGroupIfSecond: null,
     autoFillPositionIfSecond: "first",
+    potentialOpponentGroups: ["A", "B", "C", "D", "E", "F", "G", "H", "I", "K", "L"],
   },
 ];
 

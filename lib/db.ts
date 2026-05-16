@@ -7,7 +7,18 @@ import type {
   GroupResult,
   KnockoutMatchDB,
 } from "@/types";
-import { calcMatchPoints, calcGroupPoints } from "./scoring";
+import { calcMatchPoints, calcGroupPoints, calcKnockoutPoints } from "./scoring";
+
+const KNOCKOUT_IDS = new Set(["ARG-R32", "ARG-R16", "ARG-QF", "ARG-SF", "ARG-FINAL"]);
+
+export async function getParticipants(): Promise<Participant[]> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("participants")
+    .select("*")
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}
 
 export async function getOrCreateParticipant(
   name: string
@@ -35,6 +46,16 @@ export async function getOrCreateParticipant(
   return created;
 }
 
+export async function getParticipantById(id: string): Promise<Participant | null> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("participants")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return data ?? null;
+}
+
 export async function getScorePredictions(
   participantId: string
 ): Promise<ScorePrediction[]> {
@@ -46,23 +67,36 @@ export async function getScorePredictions(
   return data ?? [];
 }
 
-export async function upsertScorePrediction(
+// Predicciones FINALES — solo inserta si no existe, nunca actualiza
+export async function insertScorePrediction(
   participantId: string,
   matchId: string,
   predictedArgentina: number,
-  predictedOpponent: number
-): Promise<void> {
+  predictedOpponent: number,
+  predictedOpponentTeam: string | null = null
+): Promise<boolean> {
   const supabase = getSupabase();
-  await supabase.from("score_predictions").upsert(
-    {
-      participant_id: participantId,
-      match_id: matchId,
-      predicted_argentina: predictedArgentina,
-      predicted_opponent: predictedOpponent,
-      points: 0,
-    },
-    { onConflict: "participant_id,match_id" }
-  );
+
+  // Verificar si ya existe
+  const { data: existing } = await supabase
+    .from("score_predictions")
+    .select("id")
+    .eq("participant_id", participantId)
+    .eq("match_id", matchId)
+    .single();
+
+  if (existing) return false; // Ya existe, no se puede cambiar
+
+  const { error } = await supabase.from("score_predictions").insert({
+    participant_id: participantId,
+    match_id: matchId,
+    predicted_argentina: predictedArgentina,
+    predicted_opponent: predictedOpponent,
+    predicted_opponent_team: predictedOpponentTeam,
+    points: 0,
+  });
+
+  return !error;
 }
 
 export async function getGroupPredictions(
@@ -76,23 +110,33 @@ export async function getGroupPredictions(
   return data ?? [];
 }
 
-export async function upsertGroupPrediction(
+// Predicciones FINALES — solo inserta si no existe
+export async function insertGroupPrediction(
   participantId: string,
   groupId: string,
   firstTeam: string,
   secondTeam: string
-): Promise<void> {
+): Promise<boolean> {
   const supabase = getSupabase();
-  await supabase.from("group_predictions").upsert(
-    {
-      participant_id: participantId,
-      group_id: groupId,
-      first_team: firstTeam,
-      second_team: secondTeam,
-      points: 0,
-    },
-    { onConflict: "participant_id,group_id" }
-  );
+
+  const { data: existing } = await supabase
+    .from("group_predictions")
+    .select("id")
+    .eq("participant_id", participantId)
+    .eq("group_id", groupId)
+    .single();
+
+  if (existing) return false;
+
+  const { error } = await supabase.from("group_predictions").insert({
+    participant_id: participantId,
+    group_id: groupId,
+    first_team: firstTeam,
+    second_team: secondTeam,
+    points: 0,
+  });
+
+  return !error;
 }
 
 export async function getMatchResults(): Promise<MatchResult[]> {
@@ -126,7 +170,7 @@ export async function upsertMatchResult(
   );
 
   if (isFinal) {
-    await recalcMatchPoints(matchId, argentinaScore, opponentScore);
+    await recalcGroupMatchPoints(matchId, argentinaScore, opponentScore);
   }
 }
 
@@ -153,7 +197,59 @@ export async function upsertGroupResult(
   }
 }
 
-async function recalcMatchPoints(
+export async function getKnockoutMatches(): Promise<KnockoutMatchDB[]> {
+  const supabase = getSupabase();
+  const { data } = await supabase.from("knockout_matches").select("*");
+  return data ?? [];
+}
+
+export async function upsertKnockoutMatch(
+  matchId: string,
+  opponentName: string,
+  opponentFlag: string,
+  actualOpponentTeam: string,
+  isEnabled: boolean
+): Promise<void> {
+  const supabase = getSupabase();
+  await supabase.from("knockout_matches").upsert(
+    {
+      match_id: matchId,
+      opponent_name: opponentName,
+      opponent_flag: opponentFlag,
+      actual_opponent_team: actualOpponentTeam,
+      is_enabled: isEnabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "match_id" }
+  );
+}
+
+export async function upsertKnockoutResult(
+  matchId: string,
+  argentinaScore: number,
+  opponentScore: number,
+  actualOpponentTeam: string,
+  isFinal: boolean
+): Promise<void> {
+  const supabase = getSupabase();
+  await supabase.from("knockout_matches").upsert(
+    {
+      match_id: matchId,
+      argentina_score: argentinaScore,
+      opponent_score: opponentScore,
+      actual_opponent_team: actualOpponentTeam,
+      is_final: isFinal,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "match_id" }
+  );
+
+  if (isFinal) {
+    await recalcKnockoutMatchPoints(matchId, argentinaScore, opponentScore, actualOpponentTeam);
+  }
+}
+
+async function recalcGroupMatchPoints(
   matchId: string,
   actualArg: number,
   actualOpp: number
@@ -167,16 +263,35 @@ async function recalcMatchPoints(
   if (!predictions) return;
 
   for (const pred of predictions) {
-    const pts = calcMatchPoints(
+    const pts = calcMatchPoints(pred.predicted_argentina, pred.predicted_opponent, actualArg, actualOpp);
+    await supabase.from("score_predictions").update({ points: pts }).eq("id", pred.id);
+  }
+}
+
+async function recalcKnockoutMatchPoints(
+  matchId: string,
+  actualArg: number,
+  actualOpp: number,
+  actualOpponentTeam: string
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data: predictions } = await supabase
+    .from("score_predictions")
+    .select("*")
+    .eq("match_id", matchId);
+
+  if (!predictions) return;
+
+  for (const pred of predictions) {
+    const pts = calcKnockoutPoints(
       pred.predicted_argentina,
       pred.predicted_opponent,
+      pred.predicted_opponent_team,
       actualArg,
-      actualOpp
+      actualOpp,
+      actualOpponentTeam
     );
-    await supabase
-      .from("score_predictions")
-      .update({ points: pts })
-      .eq("id", pred.id);
+    await supabase.from("score_predictions").update({ points: pts }).eq("id", pred.id);
   }
 }
 
@@ -194,89 +309,23 @@ async function recalcGroupPoints(
   if (!predictions) return;
 
   for (const pred of predictions) {
-    const pts = calcGroupPoints(
-      pred.first_team,
-      pred.second_team,
-      actualFirst,
-      actualSecond
-    );
-    await supabase
-      .from("group_predictions")
-      .update({ points: pts })
-      .eq("id", pred.id);
-  }
-}
-
-export async function getKnockoutMatches(): Promise<KnockoutMatchDB[]> {
-  const supabase = getSupabase();
-  const { data } = await supabase.from("knockout_matches").select("*");
-  return data ?? [];
-}
-
-export async function upsertKnockoutMatch(
-  matchId: string,
-  opponentName: string,
-  opponentFlag: string,
-  isEnabled: boolean
-): Promise<void> {
-  const supabase = getSupabase();
-  await supabase.from("knockout_matches").upsert(
-    {
-      match_id: matchId,
-      opponent_name: opponentName,
-      opponent_flag: opponentFlag,
-      is_enabled: isEnabled,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "match_id" }
-  );
-}
-
-export async function upsertKnockoutResult(
-  matchId: string,
-  argentinaScore: number,
-  opponentScore: number,
-  isFinal: boolean
-): Promise<void> {
-  const supabase = getSupabase();
-  await supabase.from("knockout_matches").upsert(
-    {
-      match_id: matchId,
-      argentina_score: argentinaScore,
-      opponent_score: opponentScore,
-      is_final: isFinal,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "match_id" }
-  );
-
-  if (isFinal) {
-    await recalcMatchPoints(matchId, argentinaScore, opponentScore);
+    const pts = calcGroupPoints(pred.first_team, pred.second_team, actualFirst, actualSecond);
+    await supabase.from("group_predictions").update({ points: pts }).eq("id", pred.id);
   }
 }
 
 export async function getLeaderboard() {
   const supabase = getSupabase();
-  const { data: participants } = await supabase
-    .from("participants")
-    .select("*");
+  const { data: participants } = await supabase.from("participants").select("*");
   if (!participants) return [];
 
-  const { data: scorePreds } = await supabase
-    .from("score_predictions")
-    .select("*");
-  const { data: groupPreds } = await supabase
-    .from("group_predictions")
-    .select("*");
+  const { data: scorePreds } = await supabase.from("score_predictions").select("*");
+  const { data: groupPreds } = await supabase.from("group_predictions").select("*");
 
   return participants
     .map((p) => {
-      const myMatchPreds = (scorePreds ?? []).filter(
-        (s) => s.participant_id === p.id
-      );
-      const myGroupPreds = (groupPreds ?? []).filter(
-        (g) => g.participant_id === p.id
-      );
+      const myMatchPreds = (scorePreds ?? []).filter((s) => s.participant_id === p.id);
+      const myGroupPreds = (groupPreds ?? []).filter((g) => g.participant_id === p.id);
 
       const matchPoints = myMatchPreds.reduce((s, x) => s + (x.points ?? 0), 0);
       const groupPoints = myGroupPreds.reduce((s, x) => s + (x.points ?? 0), 0);

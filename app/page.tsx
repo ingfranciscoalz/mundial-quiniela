@@ -2,57 +2,72 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getOrCreateParticipant } from "@/lib/db";
+import { getParticipants, getOrCreateParticipant } from "@/lib/db";
+import type { Participant } from "@/types";
 
 export default function HomePage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loadingList, setLoadingList] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [addingNew, setAddingNew] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleEnter(e: React.FormEvent) {
+  useEffect(() => {
+    async function load() {
+      try {
+        const data = await getParticipants();
+        setParticipants(data);
+      } catch (err) {
+        console.error(err);
+        setError("Error de conexión. Verificá las variables de entorno en Vercel.");
+      } finally {
+        setLoadingList(false);
+      }
+    }
+    load();
+  }, []);
+
+  function selectParticipant(p: Participant) {
+    localStorage.setItem("mundial_user", JSON.stringify({ id: p.id, name: p.name }));
+    router.push("/predict");
+  }
+
+  async function handleAddNew(e: React.FormEvent) {
     e.preventDefault();
-    const trimmed = name.trim();
+    const trimmed = newName.trim();
     if (!trimmed) return;
-
-    setLoading(true);
+    setAddingNew(true);
     setError("");
-
     try {
       const participant = await getOrCreateParticipant(trimmed);
       if (!participant) {
-        setError("No se pudo guardar tu nombre. Verificá que el proyecto de Supabase esté activo.");
+        setError("No se pudo guardar el nombre. Intentá de nuevo.");
         return;
       }
-      localStorage.setItem(
-        "mundial_user",
-        JSON.stringify({ id: participant.id, name: participant.name })
-      );
+      localStorage.setItem("mundial_user", JSON.stringify({ id: participant.id, name: participant.name }));
       router.push("/predict");
     } catch (err) {
-      console.error("Login error:", err);
-      setError("Error de conexión con Supabase. Verificá las variables de entorno en Vercel y que el proyecto no esté pausado.");
+      console.error(err);
+      setError("Error de conexión con Supabase.");
     } finally {
-      setLoading(false);
+      setAddingNew(false);
     }
   }
 
   return (
     <div
-      className="page-bg flex flex-col items-center justify-center px-4"
+      className="page-bg flex flex-col items-center justify-center px-4 py-8"
       style={{ backgroundImage: "url('/bg1.jpg')" }}
     >
-      {/* Overlay oscuro */}
       <div className="page-overlay" />
-
-      {/* Degradado inferior para profundidad */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 z-10" />
 
-      <div className="relative z-20 w-full max-w-md">
-
+      <div className="relative z-20 w-full max-w-lg">
         {/* Logo + título */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
@@ -80,43 +95,84 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Card glassmorphism */}
-        <div className="glass-card">
+        {/* Lista de participantes */}
+        <div className="glass-card mb-4">
           <h2 className="text-base font-semibold text-white/90 mb-4 text-center">
-            ¿Cuál es tu nombre?
+            ¿Quién sos?
           </h2>
-          <form onSubmit={handleEnter} className="space-y-3">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Escribí tu nombre..."
-              maxLength={40}
-              className="w-full px-4 py-3 rounded-xl border-2 border-white/30 bg-white/20 backdrop-blur-sm text-white placeholder-white/50 focus:border-white/60 focus:outline-none text-lg transition-colors"
-              autoFocus
-            />
-            {error && (
-              <p className="text-red-300 text-sm text-center">{error}</p>
-            )}
+
+          {loadingList ? (
+            <div className="text-center text-white/50 py-4 animate-pulse">
+              Cargando participantes...
+            </div>
+          ) : participants.length > 0 ? (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {participants.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => selectParticipant(p)}
+                  className="px-4 py-3 rounded-xl bg-white/15 border border-white/20 text-white font-semibold text-sm hover:bg-white/30 hover:border-white/50 transition-all text-left truncate"
+                >
+                  👤 {p.name}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-white/50 text-sm text-center mb-4 py-2">
+              Todavía no hay participantes. ¡Sé el primero!
+            </p>
+          )}
+
+          {!showAddForm ? (
             <button
-              type="submit"
-              disabled={!name.trim() || loading}
-              className="btn-primary w-full text-base"
+              onClick={() => setShowAddForm(true)}
+              className="w-full py-2.5 rounded-xl border-2 border-dashed border-white/30 text-white/70 hover:border-white/50 hover:text-white transition-all text-sm font-medium"
             >
-              {loading ? "Cargando..." : "Entrar al fixture →"}
+              + Agregar mi nombre
             </button>
-          </form>
+          ) : (
+            <form onSubmit={handleAddNew} className="space-y-2 mt-2">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Escribí tu nombre..."
+                maxLength={40}
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border-2 border-white/30 bg-white/20 backdrop-blur-sm text-white placeholder-white/50 focus:border-white/60 focus:outline-none text-base transition-colors"
+              />
+              {error && (
+                <p className="text-red-300 text-xs text-center">{error}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowAddForm(false); setNewName(""); setError(""); }}
+                  className="flex-1 py-2.5 rounded-xl border border-white/20 text-white/60 hover:text-white text-sm transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newName.trim() || addingNew}
+                  className="btn-primary flex-1 text-sm"
+                >
+                  {addingNew ? "Creando..." : "Entrar →"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Puntos */}
-        <div className="mt-5 grid grid-cols-3 gap-3 text-center">
+        <div className="grid grid-cols-3 gap-3 text-center">
           {[
             { icon: "🎯", label: "Marcador exacto", pts: "3 pts" },
             { icon: "✅", label: "Resultado correcto", pts: "1 pt" },
             { icon: "🌍", label: "Equipo clasificado", pts: "1 pt" },
           ].map((item) => (
             <div
-              key={item.pts + item.icon}
+              key={item.icon}
               className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/15"
             >
               <div className="text-2xl mb-1">{item.icon}</div>

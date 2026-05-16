@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ArgentinaMatch, ScorePrediction, MatchResult } from "@/types";
 import { ARGENTINA } from "@/lib/worldcupData";
-import { upsertScorePrediction } from "@/lib/db";
+import { insertScorePrediction } from "@/lib/db";
 import { getResultBadge } from "@/lib/scoring";
 
 interface Props {
@@ -22,16 +22,13 @@ export default function ArgentinaMatchCard({
   onSaved,
 }: Props) {
   const isLocked = new Date() >= new Date(match.lockTime);
+  const hasPrediction = prediction != null;
   const hasResult = result?.is_final && result.argentina_score != null;
 
-  const [argScore, setArgScore] = useState<string>(
-    prediction?.predicted_argentina?.toString() ?? ""
-  );
-  const [oppScore, setOppScore] = useState<string>(
-    prediction?.predicted_opponent?.toString() ?? ""
-  );
+  const [argScore, setArgScore] = useState<string>("");
+  const [oppScore, setOppScore] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   const matchDate = new Date(match.date + "T12:00:00");
   const dateLabel = matchDate.toLocaleDateString("es-AR", {
@@ -44,20 +41,22 @@ export default function ArgentinaMatchCard({
     const a = parseInt(argScore);
     const o = parseInt(oppScore);
     if (isNaN(a) || isNaN(o) || a < 0 || o < 0) return;
-
     setSaving(true);
-    await upsertScorePrediction(participantId, match.id, a, o);
+    const ok = await insertScorePrediction(participantId, match.id, a, o);
     setSaving(false);
-    setSaved(true);
-    onSaved();
-    setTimeout(() => setSaved(false), 2000);
+    if (ok) {
+      onSaved();
+    } else {
+      setFailed(true);
+      setTimeout(() => setFailed(false), 3000);
+    }
   }
 
   const badge =
-    hasResult && prediction
+    hasResult && hasPrediction
       ? getResultBadge(
-          prediction.predicted_argentina,
-          prediction.predicted_opponent,
+          prediction!.predicted_argentina,
+          prediction!.predicted_opponent,
           result!.argentina_score!,
           result!.opponent_score!
         )
@@ -76,17 +75,22 @@ export default function ArgentinaMatchCard({
           {match.stageLabel}
         </span>
         <div>
-          {isLocked && !hasResult && (
-            <span className="text-xs bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full border border-amber-200">
-              🔒 Cerrado
-            </span>
-          )}
           {hasResult && badge && (
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeConfig[badge].cls}`}>
               {badgeConfig[badge].label}
             </span>
           )}
-          {!isLocked && !hasResult && (
+          {!hasResult && isLocked && (
+            <span className="text-xs bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full border border-amber-200">
+              🔒 Cerrado
+            </span>
+          )}
+          {!hasResult && !isLocked && hasPrediction && (
+            <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
+              ✅ Predicción enviada
+            </span>
+          )}
+          {!hasResult && !isLocked && !hasPrediction && (
             <span className="text-xs bg-emerald-50 text-emerald-600 font-semibold px-2 py-0.5 rounded-full border border-emerald-200">
               Abierto
             </span>
@@ -113,6 +117,16 @@ export default function ArgentinaMatchCard({
               <span className="text-xl font-bold text-stone-300">-</span>
               <div className="w-16 h-16 flex items-center justify-center bg-stone-50 rounded-xl text-2xl font-black text-slate-700 border border-stone-200">
                 {result!.opponent_score}
+              </div>
+            </>
+          ) : hasPrediction ? (
+            <>
+              <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
+                {prediction!.predicted_argentina}
+              </div>
+              <span className="text-xl font-bold text-stone-300">-</span>
+              <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
+                {prediction!.predicted_opponent}
               </div>
             </>
           ) : (
@@ -148,19 +162,25 @@ export default function ArgentinaMatchCard({
         </div>
       </div>
 
-      {prediction && !hasResult && (
-        <p className="text-center text-xs text-stone-400 mt-3">
-          Predicción guardada: {prediction.predicted_argentina} – {prediction.predicted_opponent}
+      {hasPrediction && !hasResult && (
+        <p className="text-center text-xs text-blue-400 mt-3 font-medium">
+          🔒 Tu predicción es definitiva y no puede modificarse
         </p>
       )}
 
-      {!isLocked && !hasResult && (
+      {failed && (
+        <p className="text-center text-xs text-red-500 mt-3">
+          Error al guardar. Intentá de nuevo.
+        </p>
+      )}
+
+      {!isLocked && !hasResult && !hasPrediction && (
         <button
           onClick={handleSave}
           disabled={saving || argScore === "" || oppScore === ""}
           className="btn-primary w-full mt-4 py-2.5 text-sm"
         >
-          {saved ? "✓ Guardado" : saving ? "Guardando..." : "Guardar predicción"}
+          {saving ? "Guardando..." : "Guardar predicción"}
         </button>
       )}
     </div>

@@ -30,6 +30,26 @@ export function getResultLabel(argentina: number, opponent: number): string {
   return "Empate";
 }
 
+export function calcKnockoutPoints(
+  predictedArg: number,
+  predictedOpp: number,
+  predictedOpponentTeam: string | null,
+  actualArg: number,
+  actualOpp: number,
+  actualOpponentTeam: string | null
+): number {
+  // Si el rival no coincide con lo predicho: 0 pts
+  if (!predictedOpponentTeam || !actualOpponentTeam) return 0;
+  if (predictedOpponentTeam !== actualOpponentTeam) return 0;
+
+  // Rival correcto → mínimo 1 pt
+  if (predictedArg === actualArg && predictedOpp === actualOpp) return 3;
+  const predictedResult = Math.sign(predictedArg - predictedOpp);
+  const actualResult = Math.sign(actualArg - actualOpp);
+  if (predictedResult === actualResult) return 2;
+  return 1;
+}
+
 export function getResultBadge(
   predictedArg: number,
   predictedOpp: number,

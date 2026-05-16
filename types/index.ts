@@ -33,17 +33,20 @@ export interface KnockoutMatchConfig {
   venue: string;
   lockTime: string;
   bracketDescription: string;
-  // Auto-fill: which group provides opponent and which position
+  // Auto-fill rival según predicciones de grupos
   autoFillGroupIfFirst: string | null;
   autoFillPositionIfFirst: "first" | "second";
   autoFillGroupIfSecond: string | null;
   autoFillPositionIfSecond: "first" | "second";
+  // Grupos con posibles rivales para el dropdown
+  potentialOpponentGroups: string[];
 }
 
 export interface KnockoutMatchDB {
   match_id: string;
   opponent_name: string | null;
   opponent_flag: string | null;
+  actual_opponent_team: string | null;
   is_enabled: boolean;
   argentina_score: number | null;
   opponent_score: number | null;
@@ -56,6 +59,7 @@ export interface ScorePrediction {
   match_id: string;
   predicted_argentina: number;
   predicted_opponent: number;
+  predicted_opponent_team: string | null;
   points: number;
 }
 

@@ -32,7 +32,7 @@ export default function AdminPage() {
     Record<string, { first: string; second: string; final: boolean }>
   >({});
   const [knockoutInputs, setKnockoutInputs] = useState<
-    Record<string, { name: string; flag: string; enabled: boolean; arg: string; opp: string; final: boolean }>
+    Record<string, { name: string; flag: string; actualTeam: string; enabled: boolean; arg: string; opp: string; final: boolean }>
   >({});
 
   async function load() {
@@ -62,6 +62,7 @@ export default function AdminPage() {
       ki[m.id] = {
         name: db?.opponent_name ?? "",
         flag: db?.opponent_flag ?? "",
+        actualTeam: db?.actual_opponent_team ?? "",
         enabled: db?.is_enabled ?? false,
         arg: db?.argentina_score?.toString() ?? "",
         opp: db?.opponent_score?.toString() ?? "",
@@ -97,7 +98,7 @@ export default function AdminPage() {
   async function saveKnockoutConfig(matchId: string) {
     const inp = knockoutInputs[matchId];
     setSaving(matchId + "-cfg");
-    await upsertKnockoutMatch(matchId, inp.name, inp.flag, inp.enabled);
+    await upsertKnockoutMatch(matchId, inp.name, inp.flag, inp.actualTeam, inp.enabled);
     await load();
     setSaving(null);
   }
@@ -108,7 +109,7 @@ export default function AdminPage() {
     const opp = parseInt(inp.opp);
     if (isNaN(arg) || isNaN(opp)) return;
     setSaving(matchId + "-res");
-    await upsertKnockoutResult(matchId, arg, opp, inp.final);
+    await upsertKnockoutResult(matchId, arg, opp, inp.actualTeam, inp.final);
     await load();
     setSaving(null);
   }
@@ -228,6 +229,9 @@ export default function AdminPage() {
                         onChange={(e) => setKnockoutInputs((p) => ({ ...p, [config.id]: { ...p[config.id], name: e.target.value } }))}
                         className="flex-1 border border-stone-200 rounded-lg px-2 py-1.5 text-sm" />
                     </div>
+                    <input type="text" value={inp.actualTeam} placeholder="ID del equipo (ej: ESP, BRA)"
+                      onChange={(e) => setKnockoutInputs((p) => ({ ...p, [config.id]: { ...p[config.id], actualTeam: e.target.value } }))}
+                      className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mb-2" />
                     <button onClick={() => saveKnockoutConfig(config.id)} disabled={isSavingCfg} className="btn-primary w-full py-1.5 text-sm">
                       {isSavingCfg ? "..." : "Guardar rival"}
                     </button>
