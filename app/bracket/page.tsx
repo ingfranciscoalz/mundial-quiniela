@@ -64,7 +64,7 @@ export default function BracketPage() {
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-2xl font-black text-white drop-shadow">
-                Cuadro Eliminatorio 🏆
+                Llaves 🏆
               </h1>
               <p className="text-white/60 text-sm mt-0.5">{user.name}</p>
             </div>
@@ -87,7 +87,7 @@ export default function BracketPage() {
           {groupsCompleted < 11 && (
             <div className="mt-3 bg-amber-400/15 border border-amber-400/30 rounded-xl px-4 py-2.5">
               <p className="text-amber-200 text-sm">
-                ⚠️ Completá los <strong>{11 - groupsCompleted} grupos pendientes</strong> en la pestaña "Grupos" para que los equipos aparezcan en el cuadro.
+                ⚠️ Completá los <strong>{11 - groupsCompleted} grupos pendientes</strong> en la pestaña "Grupos" para que los equipos aparezcan en las llaves.
               </p>
             </div>
           )}
@@ -95,7 +95,7 @@ export default function BracketPage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-20 text-white/60 animate-pulse">
-            Cargando cuadro...
+            Cargando llaves...
           </div>
         ) : (
           <BracketTree

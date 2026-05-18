@@ -82,7 +82,7 @@ export default function HomePage() {
             </div>
           </div>
           <h1 className="text-5xl font-black text-white leading-tight drop-shadow-lg">
-            Fixture<br />
+            Prode<br />
             <span className="text-geo-light">Geotellus</span>
           </h1>
           <div className="flex items-center justify-center gap-2 mt-3">
@@ -183,7 +183,7 @@ export default function HomePage() {
         </div>
 
         <p className="text-center text-xs text-white/40 mt-6">
-          Fixture Geotellus · Mundial 2026 🇦🇷
+          Prode Geotellus · Mundial 2026 🇦🇷
         </p>
       </div>
     </div>

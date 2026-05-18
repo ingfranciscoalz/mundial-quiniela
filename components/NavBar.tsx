@@ -17,7 +17,7 @@ export default function NavBar() {
 
   const links = [
     { href: "/predict", label: "Predicciones" },
-    { href: "/bracket", label: "Cuadro 🏆" },
+    { href: "/bracket", label: "Llaves 🏆" },
     { href: "/leaderboard", label: "Tabla" },
   ];
 
@@ -33,7 +33,7 @@ export default function NavBar() {
             className="object-contain"
           />
           <span className="font-bold text-white hidden sm:inline">
-            Fixture Geotellus
+            Prode Geotellus
           </span>
           <span className="text-white/30 hidden sm:inline">·</span>
           <span className="font-semibold text-geo-light hidden sm:inline text-sm">

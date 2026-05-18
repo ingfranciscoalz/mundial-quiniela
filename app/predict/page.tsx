@@ -169,7 +169,7 @@ export default function PredictPage() {
               <p className="text-white/70 text-sm">
                 Elegí el equipo que termina <strong className="text-white">1°</strong>,{" "}
                 <strong className="text-white">2°</strong> y <strong className="text-white">3°</strong> en cada grupo.
-                1 punto por cada acierto. El 3° se usa para completar el cuadro.
+                1 punto por cada acierto. El 3° se usa para completar las llaves.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
