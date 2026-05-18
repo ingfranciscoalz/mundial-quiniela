@@ -16,7 +16,8 @@ export default function NavBar() {
   }, [pathname]);
 
   const links = [
-    { href: "/predict", label: "Mis Predicciones" },
+    { href: "/predict", label: "Predicciones" },
+    { href: "/bracket", label: "Cuadro 🏆" },
     { href: "/leaderboard", label: "Tabla" },
   ];
 

@@ -314,6 +314,30 @@ async function recalcGroupPoints(
   }
 }
 
+export async function getBracketPredictions(
+  participantId: string
+): Promise<{ match_id: string; winner_id: string }[]> {
+  const supabase = getSupabase();
+  const { data } = await supabase
+    .from("bracket_predictions")
+    .select("match_id, winner_id")
+    .eq("participant_id", participantId);
+  return data ?? [];
+}
+
+export async function upsertBracketPrediction(
+  participantId: string,
+  matchId: string,
+  winnerId: string
+): Promise<boolean> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from("bracket_predictions").upsert(
+    { participant_id: participantId, match_id: matchId, winner_id: winnerId },
+    { onConflict: "participant_id,match_id" }
+  );
+  return !error;
+}
+
 export async function getLeaderboard() {
   const supabase = getSupabase();
   const { data: participants } = await supabase.from("participants").select("*");
