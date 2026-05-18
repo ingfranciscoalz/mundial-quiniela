@@ -143,7 +143,7 @@ function BracketColumn({
   onPick: (matchId: string, winnerId: string) => void;
 }) {
   const matches = BRACKET.filter((m) => m.round === round && m.side === side);
-  const depth = { r32: 0, r16: 1, qf: 2, sf: 3, final: 4 }[round];
+  const depth = { r32: 0, r16: 1, qf: 2, sf: 3, final: 3 }[round];
   const blockH = Math.pow(2, depth) * SLOT;
   const padV = (blockH - CARD_H) / 2;
 
