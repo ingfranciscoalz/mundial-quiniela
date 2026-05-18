@@ -69,6 +69,7 @@ export interface GroupPrediction {
   group_id: string;
   first_team: string;
   second_team: string;
+  third_team: string | null;
   points: number;
 }
 

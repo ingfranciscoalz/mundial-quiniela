@@ -67,8 +67,7 @@ export async function getScorePredictions(
   return data ?? [];
 }
 
-// Predicciones FINALES — solo inserta si no existe, nunca actualiza
-export async function insertScorePrediction(
+export async function upsertScorePrediction(
   participantId: string,
   matchId: string,
   predictedArgentina: number,
@@ -76,26 +75,17 @@ export async function insertScorePrediction(
   predictedOpponentTeam: string | null = null
 ): Promise<boolean> {
   const supabase = getSupabase();
-
-  // Verificar si ya existe
-  const { data: existing } = await supabase
-    .from("score_predictions")
-    .select("id")
-    .eq("participant_id", participantId)
-    .eq("match_id", matchId)
-    .single();
-
-  if (existing) return false; // Ya existe, no se puede cambiar
-
-  const { error } = await supabase.from("score_predictions").insert({
-    participant_id: participantId,
-    match_id: matchId,
-    predicted_argentina: predictedArgentina,
-    predicted_opponent: predictedOpponent,
-    predicted_opponent_team: predictedOpponentTeam,
-    points: 0,
-  });
-
+  const { error } = await supabase.from("score_predictions").upsert(
+    {
+      participant_id: participantId,
+      match_id: matchId,
+      predicted_argentina: predictedArgentina,
+      predicted_opponent: predictedOpponent,
+      predicted_opponent_team: predictedOpponentTeam,
+      points: 0,
+    },
+    { onConflict: "participant_id,match_id" }
+  );
   return !error;
 }
 
@@ -110,32 +100,25 @@ export async function getGroupPredictions(
   return data ?? [];
 }
 
-// Predicciones FINALES — solo inserta si no existe
-export async function insertGroupPrediction(
+export async function upsertGroupPrediction(
   participantId: string,
   groupId: string,
   firstTeam: string,
-  secondTeam: string
+  secondTeam: string,
+  thirdTeam: string | null = null
 ): Promise<boolean> {
   const supabase = getSupabase();
-
-  const { data: existing } = await supabase
-    .from("group_predictions")
-    .select("id")
-    .eq("participant_id", participantId)
-    .eq("group_id", groupId)
-    .single();
-
-  if (existing) return false;
-
-  const { error } = await supabase.from("group_predictions").insert({
-    participant_id: participantId,
-    group_id: groupId,
-    first_team: firstTeam,
-    second_team: secondTeam,
-    points: 0,
-  });
-
+  const { error } = await supabase.from("group_predictions").upsert(
+    {
+      participant_id: participantId,
+      group_id: groupId,
+      first_team: firstTeam,
+      second_team: secondTeam,
+      third_team: thirdTeam,
+      points: 0,
+    },
+    { onConflict: "participant_id,group_id" }
+  );
   return !error;
 }
 

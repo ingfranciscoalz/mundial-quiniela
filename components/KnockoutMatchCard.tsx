@@ -7,8 +7,8 @@ import type {
   ScorePrediction,
   GroupPrediction,
 } from "@/types";
-import { ARGENTINA, GROUPS } from "@/lib/worldcupData";
-import { insertScorePrediction } from "@/lib/db";
+import { ARGENTINA, GROUPS, isMatchLocked } from "@/lib/worldcupData";
+import { upsertScorePrediction } from "@/lib/db";
 import { calcKnockoutPoints } from "@/lib/scoring";
 
 interface Props {
@@ -62,7 +62,7 @@ export default function KnockoutMatchCard({
   groupPreds,
   onSaved,
 }: Props) {
-  const isLocked = new Date() >= new Date(config.lockTime);
+  const isLocked = isMatchLocked(config.lockTime);
   const hasPrediction = prediction != null;
   const hasResult = dbMatch?.is_final === true && dbMatch.argentina_score != null;
   const isR32 = config.stage === "r32";
@@ -75,9 +75,15 @@ export default function KnockoutMatchCard({
     return g?.teams ?? [];
   });
 
-  const [argScore, setArgScore] = useState<string>("");
-  const [oppScore, setOppScore] = useState<string>("");
-  const [selectedOpponentId, setSelectedOpponentId] = useState<string>("");
+  const [argScore, setArgScore] = useState<string>(
+    prediction?.predicted_argentina?.toString() ?? ""
+  );
+  const [oppScore, setOppScore] = useState<string>(
+    prediction?.predicted_opponent?.toString() ?? ""
+  );
+  const [selectedOpponentId, setSelectedOpponentId] = useState<string>(
+    prediction?.predicted_opponent_team ?? ""
+  );
   const [saving, setSaving] = useState(false);
 
   const resolvedOpponentId = isR32
@@ -89,7 +95,7 @@ export default function KnockoutMatchCard({
     const o = parseInt(oppScore);
     if (isNaN(a) || isNaN(o) || a < 0 || o < 0 || !resolvedOpponentId) return;
     setSaving(true);
-    const ok = await insertScorePrediction(participantId, config.id, a, o, resolvedOpponentId);
+    const ok = await upsertScorePrediction(participantId, config.id, a, o, resolvedOpponentId);
     setSaving(false);
     if (ok) onSaved();
   }
@@ -162,7 +168,7 @@ export default function KnockoutMatchCard({
           )}
           {!hasResult && !isLocked && hasPrediction && (
             <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
-              ✅ Predicción enviada
+              ✏️ Modificable
             </span>
           )}
           {!hasResult && !isLocked && !hasPrediction && (
@@ -177,8 +183,8 @@ export default function KnockoutMatchCard({
         📅 {dateLabel} &nbsp;·&nbsp; 📍 {config.venue}
       </p>
 
-      {/* Dropdown rival (solo R16+ cuando no hay predicción y no está cerrado) */}
-      {!isR32 && !hasPrediction && !isLocked && (
+      {/* Dropdown rival (R16+ cuando no está cerrado ni tiene resultado) */}
+      {!isR32 && !isLocked && !hasResult && (
         <div className="mb-4">
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">
             Tu rival predicho
@@ -217,14 +223,14 @@ export default function KnockoutMatchCard({
                 {dbMatch!.opponent_score}
               </div>
             </>
-          ) : hasPrediction ? (
+          ) : isLocked ? (
             <>
               <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
-                {prediction!.predicted_argentina}
+                {hasPrediction ? prediction!.predicted_argentina : "—"}
               </div>
               <span className="text-xl font-bold text-stone-300">-</span>
               <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
-                {prediction!.predicted_opponent}
+                {hasPrediction ? prediction!.predicted_opponent : "—"}
               </div>
             </>
           ) : (
@@ -235,9 +241,8 @@ export default function KnockoutMatchCard({
                 max={20}
                 value={argScore}
                 onChange={(e) => setArgScore(e.target.value)}
-                disabled={isLocked}
                 placeholder="0"
-                className="score-input disabled:bg-stone-50 disabled:text-stone-300"
+                className="score-input"
               />
               <span className="text-xl font-bold text-stone-300">-</span>
               <input
@@ -246,9 +251,8 @@ export default function KnockoutMatchCard({
                 max={20}
                 value={oppScore}
                 onChange={(e) => setOppScore(e.target.value)}
-                disabled={isLocked}
                 placeholder="0"
-                className="score-input disabled:bg-stone-50 disabled:text-stone-300"
+                className="score-input"
               />
             </>
           )}
@@ -276,8 +280,8 @@ export default function KnockoutMatchCard({
         </div>
       </div>
 
-      {/* Info para R32 cuando no hay predicción */}
-      {isR32 && !hasPrediction && (
+      {/* Info para R32 */}
+      {isR32 && !isLocked && !hasResult && (
         <div className="mt-3 bg-stone-50 rounded-xl p-2.5 text-center">
           <p className="text-xs text-stone-500 italic">{config.bracketDescription}</p>
           <p className="text-xs text-stone-400 mt-0.5">
@@ -287,13 +291,7 @@ export default function KnockoutMatchCard({
         </div>
       )}
 
-      {hasPrediction && !hasResult && (
-        <p className="text-center text-xs text-blue-400 mt-3 font-medium">
-          🔒 Tu predicción es definitiva y no puede modificarse
-        </p>
-      )}
-
-      {!isLocked && !hasResult && !hasPrediction && (
+      {!isLocked && !hasResult && (
         <>
           <button
             onClick={handleSave}
@@ -306,24 +304,25 @@ export default function KnockoutMatchCard({
             }
             className="btn-primary w-full mt-4 py-2.5 text-sm"
           >
-            {saving ? "Guardando..." : "Guardar predicción"}
+            {saving ? "Guardando..." : hasPrediction ? "Actualizar predicción" : "Guardar predicción"}
           </button>
 
-          {/* Scoring info */}
-          <div className="mt-3 flex gap-2 text-center">
-            <div className="flex-1 bg-amber-50 rounded-lg p-1.5">
-              <div className="text-xs font-bold text-amber-700">+1pt</div>
-              <div className="text-xs text-amber-600">Rival correcto</div>
+          {!hasPrediction && (
+            <div className="mt-3 flex gap-2 text-center">
+              <div className="flex-1 bg-amber-50 rounded-lg p-1.5">
+                <div className="text-xs font-bold text-amber-700">+1pt</div>
+                <div className="text-xs text-amber-600">Rival correcto</div>
+              </div>
+              <div className="flex-1 bg-blue-50 rounded-lg p-1.5">
+                <div className="text-xs font-bold text-blue-700">+2pts</div>
+                <div className="text-xs text-blue-600">Resultado correcto</div>
+              </div>
+              <div className="flex-1 bg-emerald-50 rounded-lg p-1.5">
+                <div className="text-xs font-bold text-emerald-700">+3pts</div>
+                <div className="text-xs text-emerald-600">Marcador exacto</div>
+              </div>
             </div>
-            <div className="flex-1 bg-blue-50 rounded-lg p-1.5">
-              <div className="text-xs font-bold text-blue-700">+2pts</div>
-              <div className="text-xs text-blue-600">Resultado correcto</div>
-            </div>
-            <div className="flex-1 bg-emerald-50 rounded-lg p-1.5">
-              <div className="text-xs font-bold text-emerald-700">+3pts</div>
-              <div className="text-xs text-emerald-600">Marcador exacto</div>
-            </div>
-          </div>
+          )}
         </>
       )}
     </div>

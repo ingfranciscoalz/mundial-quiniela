@@ -218,6 +218,18 @@ export const KNOCKOUT_MATCHES: KnockoutMatchConfig[] = [
 
 export const OTHER_GROUPS = GROUPS.filter((g) => g.id !== "J");
 
+// Cierre de predicciones de grupos (1 día antes del inicio del torneo)
+export const GROUP_LOCK_TIME = "2026-06-11T12:00:00-03:00";
+
+// Retorna true si ya pasó el plazo de modificación (24h antes del partido)
+export function isMatchLocked(lockTime: string): boolean {
+  return new Date() >= new Date(new Date(lockTime).getTime() - 24 * 60 * 60 * 1000);
+}
+
+export function isGroupLocked(): boolean {
+  return isMatchLocked(GROUP_LOCK_TIME);
+}
+
 export function getGroupById(id: string): Group | undefined {
   return GROUPS.find((g) => g.id === id);
 }

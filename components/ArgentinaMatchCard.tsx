@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { ArgentinaMatch, ScorePrediction, MatchResult } from "@/types";
 import { ARGENTINA } from "@/lib/worldcupData";
-import { insertScorePrediction } from "@/lib/db";
+import { isMatchLocked } from "@/lib/worldcupData";
+import { upsertScorePrediction } from "@/lib/db";
 import { getResultBadge } from "@/lib/scoring";
 
 interface Props {
@@ -21,12 +22,16 @@ export default function ArgentinaMatchCard({
   result,
   onSaved,
 }: Props) {
-  const isLocked = new Date() >= new Date(match.lockTime);
+  const isLocked = isMatchLocked(match.lockTime);
   const hasPrediction = prediction != null;
   const hasResult = result?.is_final && result.argentina_score != null;
 
-  const [argScore, setArgScore] = useState<string>("");
-  const [oppScore, setOppScore] = useState<string>("");
+  const [argScore, setArgScore] = useState<string>(
+    prediction?.predicted_argentina?.toString() ?? ""
+  );
+  const [oppScore, setOppScore] = useState<string>(
+    prediction?.predicted_opponent?.toString() ?? ""
+  );
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -42,7 +47,7 @@ export default function ArgentinaMatchCard({
     const o = parseInt(oppScore);
     if (isNaN(a) || isNaN(o) || a < 0 || o < 0) return;
     setSaving(true);
-    const ok = await insertScorePrediction(participantId, match.id, a, o);
+    const ok = await upsertScorePrediction(participantId, match.id, a, o);
     setSaving(false);
     if (ok) {
       onSaved();
@@ -87,7 +92,7 @@ export default function ArgentinaMatchCard({
           )}
           {!hasResult && !isLocked && hasPrediction && (
             <span className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full border border-blue-200">
-              ✅ Predicción enviada
+              ✏️ Modificable
             </span>
           )}
           {!hasResult && !isLocked && !hasPrediction && (
@@ -119,14 +124,14 @@ export default function ArgentinaMatchCard({
                 {result!.opponent_score}
               </div>
             </>
-          ) : hasPrediction ? (
+          ) : isLocked ? (
             <>
               <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
-                {prediction!.predicted_argentina}
+                {hasPrediction ? prediction!.predicted_argentina : "—"}
               </div>
               <span className="text-xl font-bold text-stone-300">-</span>
               <div className="w-16 h-16 flex items-center justify-center bg-blue-50 rounded-xl text-2xl font-black text-blue-700 border border-blue-200">
-                {prediction!.predicted_opponent}
+                {hasPrediction ? prediction!.predicted_opponent : "—"}
               </div>
             </>
           ) : (
@@ -137,9 +142,8 @@ export default function ArgentinaMatchCard({
                 max={20}
                 value={argScore}
                 onChange={(e) => setArgScore(e.target.value)}
-                disabled={isLocked}
                 placeholder="0"
-                className="score-input disabled:bg-stone-50 disabled:text-stone-300"
+                className="score-input"
               />
               <span className="text-xl font-bold text-stone-300">-</span>
               <input
@@ -148,9 +152,8 @@ export default function ArgentinaMatchCard({
                 max={20}
                 value={oppScore}
                 onChange={(e) => setOppScore(e.target.value)}
-                disabled={isLocked}
                 placeholder="0"
-                className="score-input disabled:bg-stone-50 disabled:text-stone-300"
+                className="score-input"
               />
             </>
           )}
@@ -162,25 +165,19 @@ export default function ArgentinaMatchCard({
         </div>
       </div>
 
-      {hasPrediction && !hasResult && (
-        <p className="text-center text-xs text-blue-400 mt-3 font-medium">
-          🔒 Tu predicción es definitiva y no puede modificarse
-        </p>
-      )}
-
       {failed && (
         <p className="text-center text-xs text-red-500 mt-3">
           Error al guardar. Intentá de nuevo.
         </p>
       )}
 
-      {!isLocked && !hasResult && !hasPrediction && (
+      {!isLocked && !hasResult && (
         <button
           onClick={handleSave}
           disabled={saving || argScore === "" || oppScore === ""}
           className="btn-primary w-full mt-4 py-2.5 text-sm"
         >
-          {saving ? "Guardando..." : "Guardar predicción"}
+          {saving ? "Guardando..." : hasPrediction ? "Actualizar predicción" : "Guardar predicción"}
         </button>
       )}
     </div>

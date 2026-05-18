@@ -2,9 +2,8 @@ import type { GroupPrediction } from "@/types";
 import { GROUPS } from "./worldcupData";
 
 export type TeamSource =
-  | { type: "group"; group: string; pos: "first" | "second" }
-  | { type: "match"; matchId: string }
-  | { type: "third"; label: string };
+  | { type: "group"; group: string; pos: "first" | "second" | "third" }
+  | { type: "match"; matchId: string };
 
 export type BracketRound = "r32" | "r16" | "qf" | "sf" | "final";
 export type BracketSide = "left" | "right" | "center";
@@ -41,10 +40,10 @@ export const BRACKET: BracketMatch[] = [
   { id: "R32-R2", round: "r32", side: "right", sideIndex: 1, label: "1°K vs 2°L",    teamA: { type: "group", group: "K", pos: "first"  }, teamB: { type: "group", group: "L", pos: "second" } },
   { id: "R32-R3", round: "r32", side: "right", sideIndex: 2, label: "1°H vs 2°J 🇦🇷", teamA: { type: "group", group: "H", pos: "first"  }, teamB: { type: "group", group: "J", pos: "second" } },
   { id: "R32-R4", round: "r32", side: "right", sideIndex: 3, label: "1°L vs 2°K",    teamA: { type: "group", group: "L", pos: "first"  }, teamB: { type: "group", group: "K", pos: "second" } },
-  { id: "R32-R5", round: "r32", side: "right", sideIndex: 4, label: "Mejor 3ro A/B/C vs D/E/F", teamA: { type: "third", label: "Mejor 3ro A/B/C" }, teamB: { type: "third", label: "Mejor 3ro D/E/F" } },
-  { id: "R32-R6", round: "r32", side: "right", sideIndex: 5, label: "Mejor 3ro G/H/I vs J/K/L", teamA: { type: "third", label: "Mejor 3ro G/H/I" }, teamB: { type: "third", label: "Mejor 3ro J/K/L" } },
-  { id: "R32-R7", round: "r32", side: "right", sideIndex: 6, label: "3ro zona Sur",   teamA: { type: "third", label: "3ro zona" }, teamB: { type: "third", label: "3ro zona" } },
-  { id: "R32-R8", round: "r32", side: "right", sideIndex: 7, label: "3ro zona Sur",   teamA: { type: "third", label: "3ro zona" }, teamB: { type: "third", label: "3ro zona" } },
+  { id: "R32-R5", round: "r32", side: "right", sideIndex: 4, label: "3°A vs 3°B", teamA: { type: "group", group: "A", pos: "third" }, teamB: { type: "group", group: "B", pos: "third" } },
+  { id: "R32-R6", round: "r32", side: "right", sideIndex: 5, label: "3°C vs 3°D", teamA: { type: "group", group: "C", pos: "third" }, teamB: { type: "group", group: "D", pos: "third" } },
+  { id: "R32-R7", round: "r32", side: "right", sideIndex: 6, label: "3°E vs 3°F", teamA: { type: "group", group: "E", pos: "third" }, teamB: { type: "group", group: "F", pos: "third" } },
+  { id: "R32-R8", round: "r32", side: "right", sideIndex: 7, label: "3°G vs 3°I", teamA: { type: "group", group: "G", pos: "third" }, teamB: { type: "group", group: "I", pos: "third" } },
 
   // LEFT R16
   { id: "R16-L1", round: "r16", side: "left",  sideIndex: 0, label: "Octavos", teamA: { type: "match", matchId: "R32-L1" }, teamB: { type: "match", matchId: "R32-L2" } },
@@ -82,7 +81,10 @@ export function resolveTeamSource(
   if (source.type === "group") {
     const pred = groupPreds.find((p) => p.group_id === source.group);
     if (!pred) return null;
-    const teamId = source.pos === "first" ? pred.first_team : pred.second_team;
+    const teamId =
+      source.pos === "first" ? pred.first_team :
+      source.pos === "second" ? pred.second_team :
+      pred.third_team;
     if (!teamId) return null;
     for (const g of GROUPS) {
       const t = g.teams.find((t) => t.id === teamId);
@@ -92,9 +94,6 @@ export function resolveTeamSource(
   }
   if (source.type === "match") {
     return bracketWinners[source.matchId] ?? null;
-  }
-  if (source.type === "third") {
-    return { id: "__third__", name: source.label, flag: "🏳️" };
   }
   return null;
 }

@@ -12,7 +12,7 @@ import type {
   GroupResult,
   KnockoutMatchDB,
 } from "@/types";
-import { ARGENTINA_MATCHES, OTHER_GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
+import { ARGENTINA_MATCHES, GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
 import {
   getScorePredictions,
   getGroupPredictions,
@@ -72,14 +72,14 @@ export default function PredictPage() {
     scorePreds.some((p) => p.match_id === m.id)
   ).length;
   const enabledKnockout = knockoutMatches.filter((m) => m.is_enabled).length;
-  const filledGroups = OTHER_GROUPS.filter((g) =>
+  const filledGroups = GROUPS.filter((g) =>
     groupPreds.some((p) => p.group_id === g.id)
   ).length;
 
   const tabs = [
     { id: "argentina" as Tab, label: "🇦🇷 Grupos", badge: `${filledMatches}/${ARGENTINA_MATCHES.length}` },
     { id: "eliminatorias" as Tab, label: "⚡ Eliminatorias", badge: enabledKnockout > 0 ? `${filledKnockout}/${enabledKnockout}` : `${KNOCKOUT_MATCHES.length} partidos` },
-    { id: "grupos" as Tab, label: "🌍 Otros Grupos", badge: `${filledGroups}/${OTHER_GROUPS.length}` },
+    { id: "grupos" as Tab, label: "🌍 Grupos", badge: `${filledGroups}/${GROUPS.length}` },
   ];
 
   return (
@@ -167,12 +167,13 @@ export default function PredictPage() {
           <div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 border border-white/10 mb-4">
               <p className="text-white/70 text-sm">
-                Elegí el equipo que termina <strong className="text-white">1°</strong> y{" "}
-                <strong className="text-white">2°</strong> en cada grupo. 1 punto por cada acierto.
+                Elegí el equipo que termina <strong className="text-white">1°</strong>,{" "}
+                <strong className="text-white">2°</strong> y <strong className="text-white">3°</strong> en cada grupo.
+                1 punto por cada acierto. El 3° se usa para completar el cuadro.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {OTHER_GROUPS.map((group) => (
+              {GROUPS.map((group) => (
                 <GroupPredictionCard
                   key={group.id}
                   group={group}
