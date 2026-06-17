@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [recalcMsg, setRecalcMsg] = useState<string | null>(null);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
 
   const [matchInputs, setMatchInputs] = useState<
     Record<string, { arg: string; opp: string; final: boolean }>
@@ -132,20 +133,45 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <button
-            onClick={async () => {
-              setSaving("recalc");
-              const r = await recalcAllPoints();
-              setSaving(null);
-              setRecalcMsg(`✅ Recalculado: ${r.matches} partidos · ${r.groups} grupos · ${r.knockout} eliminatorias`);
-              setTimeout(() => setRecalcMsg(null), 5000);
-            }}
-            disabled={saving === "recalc"}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
-          >
-            {saving === "recalc" ? "Recalculando..." : "🔄 Recalcular todos los puntos"}
-          </button>
-          {recalcMsg && <p className="text-emerald-300 text-xs">{recalcMsg}</p>}
+          <div className="flex gap-2 flex-wrap justify-end">
+            <button
+              onClick={async () => {
+                setSaving("sync");
+                setSyncMsg(null);
+                const res = await fetch("/api/sync-results");
+                const json = await res.json();
+                setSaving(null);
+                if (json.synced?.length > 0) {
+                  setSyncMsg(`✅ Sincronizado: ${json.synced.join(", ")}`);
+                  await load();
+                } else if (json.error) {
+                  setSyncMsg(`❌ Error: ${json.error}`);
+                } else {
+                  setSyncMsg("ℹ️ Sin partidos nuevos finalizados");
+                }
+                setTimeout(() => setSyncMsg(null), 6000);
+              }}
+              disabled={saving === "sync"}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
+            >
+              {saving === "sync" ? "Sincronizando..." : "⚡ Sync resultados API"}
+            </button>
+            <button
+              onClick={async () => {
+                setSaving("recalc");
+                const r = await recalcAllPoints();
+                setSaving(null);
+                setRecalcMsg(`✅ Recalculado: ${r.matches} partidos · ${r.groups} grupos · ${r.knockout} elim.`);
+                setTimeout(() => setRecalcMsg(null), 5000);
+              }}
+              disabled={saving === "recalc"}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
+            >
+              {saving === "recalc" ? "Recalculando..." : "🔄 Recalcular puntos"}
+            </button>
+          </div>
+          {syncMsg && <p className="text-blue-300 text-xs text-right">{syncMsg}</p>}
+          {recalcMsg && <p className="text-emerald-300 text-xs text-right">{recalcMsg}</p>}
         </div>
       </div>
 
