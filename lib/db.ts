@@ -335,6 +335,49 @@ async function recalcGroupPoints(
   }
 }
 
+export async function recalcAllPoints(): Promise<{ matches: number; groups: number; knockout: number }> {
+  const supabase = getSupabase();
+
+  let matches = 0;
+  let groups = 0;
+  let knockout = 0;
+
+  // Recalc group stage match predictions
+  const { data: matchResults } = await supabase
+    .from("match_results")
+    .select("*")
+    .eq("is_final", true);
+  for (const r of matchResults ?? []) {
+    if (r.argentina_score == null || r.opponent_score == null) continue;
+    await recalcGroupMatchPoints(r.match_id, r.argentina_score, r.opponent_score);
+    matches++;
+  }
+
+  // Recalc group classification predictions
+  const { data: groupResults } = await supabase
+    .from("group_results")
+    .select("*")
+    .eq("is_final", true);
+  for (const r of groupResults ?? []) {
+    if (!r.first_team || !r.second_team) continue;
+    await recalcGroupPoints(r.group_id, r.first_team, r.second_team);
+    groups++;
+  }
+
+  // Recalc knockout predictions
+  const { data: knockoutMatches } = await supabase
+    .from("knockout_matches")
+    .select("*")
+    .eq("is_final", true);
+  for (const r of knockoutMatches ?? []) {
+    if (r.argentina_score == null || r.opponent_score == null) continue;
+    await recalcKnockoutMatchPoints(r.match_id, r.argentina_score, r.opponent_score, r.actual_opponent_team ?? "");
+    knockout++;
+  }
+
+  return { matches, groups, knockout };
+}
+
 export async function getBracketPredictions(
   participantId: string
 ): Promise<{ match_id: string; winner_id: string }[]> {

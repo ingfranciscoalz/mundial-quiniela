@@ -11,6 +11,7 @@ import {
   upsertGroupResult,
   upsertKnockoutMatch,
   upsertKnockoutResult,
+  recalcAllPoints,
 } from "@/lib/db";
 import { ARGENTINA_MATCHES, GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
 import type { MatchResult, GroupResult, KnockoutMatchDB } from "@/types";
@@ -24,6 +25,7 @@ export default function AdminPage() {
   const [knockoutMatches, setKnockoutMatches] = useState<KnockoutMatchDB[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [recalcMsg, setRecalcMsg] = useState<string | null>(null);
 
   const [matchInputs, setMatchInputs] = useState<
     Record<string, { arg: string; opp: string; final: boolean }>
@@ -122,11 +124,29 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-black text-white drop-shadow">Panel de Admin ⚙️</h1>
-        <p className="text-white/60 text-sm mt-1">
-          Ingresá resultados y habilitá partidos eliminatorios.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-black text-white drop-shadow">Panel de Admin ⚙️</h1>
+          <p className="text-white/60 text-sm mt-1">
+            Ingresá resultados y habilitá partidos eliminatorios.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            onClick={async () => {
+              setSaving("recalc");
+              const r = await recalcAllPoints();
+              setSaving(null);
+              setRecalcMsg(`✅ Recalculado: ${r.matches} partidos · ${r.groups} grupos · ${r.knockout} eliminatorias`);
+              setTimeout(() => setRecalcMsg(null), 5000);
+            }}
+            disabled={saving === "recalc"}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
+          >
+            {saving === "recalc" ? "Recalculando..." : "🔄 Recalcular todos los puntos"}
+          </button>
+          {recalcMsg && <p className="text-emerald-300 text-xs">{recalcMsg}</p>}
+        </div>
       </div>
 
       <div className="flex gap-1.5 mb-6 bg-black/30 backdrop-blur-sm p-1 rounded-xl border border-white/10">
