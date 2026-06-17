@@ -27,6 +27,8 @@ export default function AdminPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [recalcMsg, setRecalcMsg] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  // IDs being manually edited (overriding a final result)
+  const [editing, setEditing] = useState<Set<string>>(new Set());
 
   const [matchInputs, setMatchInputs] = useState<
     Record<string, { arg: string; opp: string; final: boolean }>
@@ -73,10 +75,19 @@ export default function AdminPage() {
       };
     }
     setKnockoutInputs(ki);
+    setEditing(new Set());
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
+
+  function toggleEditing(id: string) {
+    setEditing((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   async function saveMatch(matchId: string) {
     const inp = matchInputs[matchId];
@@ -118,19 +129,18 @@ export default function AdminPage() {
   }
 
   const tabs: { id: AdminTab; label: string }[] = [
-    { id: "matches", label: "🇦🇷 Grupos Argentina" },
+    { id: "matches", label: "🇦🇷 Partidos Argentina" },
     { id: "knockout", label: "⚡ Eliminatorias" },
-    { id: "groups", label: "🌍 Otros Grupos" },
+    { id: "groups", label: "🌍 Grupos" },
   ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-white drop-shadow">Panel de Admin ⚙️</h1>
-          <p className="text-white/60 text-sm mt-1">
-            Ingresá resultados y habilitá partidos eliminatorios.
-          </p>
+          <p className="text-white/60 text-sm mt-1">Los resultados se sincronizan automáticamente cada 15 min.</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="flex gap-2 flex-wrap justify-end">
@@ -155,14 +165,14 @@ export default function AdminPage() {
               disabled={saving === "sync"}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
             >
-              {saving === "sync" ? "Sincronizando..." : "⚡ Sync resultados API"}
+              {saving === "sync" ? "Sincronizando..." : "⚡ Sync API"}
             </button>
             <button
               onClick={async () => {
                 setSaving("recalc");
                 const r = await recalcAllPoints();
                 setSaving(null);
-                setRecalcMsg(`✅ Recalculado: ${r.matches} partidos · ${r.groups} grupos · ${r.knockout} elim.`);
+                setRecalcMsg(`✅ ${r.matches} partidos · ${r.groups} grupos · ${r.knockout} elim.`);
                 setTimeout(() => setRecalcMsg(null), 5000);
               }}
               disabled={saving === "recalc"}
@@ -176,11 +186,10 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-1.5 mb-6 bg-black/30 backdrop-blur-sm p-1 rounded-xl border border-white/10">
         {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => setTab(t.id)}
             className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
               tab === t.id ? "bg-white shadow text-geo font-semibold" : "text-white/70 hover:text-white"
             }`}
@@ -192,21 +201,40 @@ export default function AdminPage() {
 
       {loading ? (
         <div className="text-white/50 text-center py-12 animate-pulse">Cargando...</div>
+
       ) : tab === "matches" ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {ARGENTINA_MATCHES.map((match) => {
             const inp = matchInputs[match.id] ?? { arg: "", opp: "", final: false };
-            const isSaving = saving === match.id;
+            const isEditing = editing.has(match.id);
+
+            if (inp.final && !isEditing) {
+              return (
+                <div key={match.id} className="card flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400 mb-0.5">{match.stageLabel} · {match.date}</p>
+                    <p className="font-bold text-slate-700">
+                      🇦🇷 Argentina <span className="text-geo font-black">{inp.arg} – {inp.opp}</span> {match.opponent.flag} {match.opponent.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">✓ Final</span>
+                    <button onClick={() => toggleEditing(match.id)} className="text-xs text-slate-400 hover:text-slate-600 underline">Editar</button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={match.id} className="card">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-bold text-slate-700">
-                      🇦🇷 Argentina vs {match.opponent.flag} {match.opponent.name}
-                    </h3>
+                    <h3 className="font-bold text-slate-700">🇦🇷 Argentina vs {match.opponent.flag} {match.opponent.name}</h3>
                     <p className="text-xs text-slate-400">{match.date} · {match.venue}</p>
                   </div>
-                  {inp.final && <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">✓ Final</span>}
+                  {isEditing && (
+                    <button onClick={() => toggleEditing(match.id)} className="text-xs text-slate-400 hover:text-slate-600 underline">Cancelar</button>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
@@ -231,8 +259,8 @@ export default function AdminPage() {
                         className="w-4 h-4 accent-geo" />
                       <span className="text-slate-600 font-medium">Resultado final</span>
                     </label>
-                    <button onClick={() => saveMatch(match.id)} disabled={isSaving || inp.arg === "" || inp.opp === ""} className="btn-primary py-2 px-4 text-sm">
-                      {isSaving ? "..." : "Guardar"}
+                    <button onClick={() => saveMatch(match.id)} disabled={saving === match.id || inp.arg === "" || inp.opp === ""} className="btn-primary py-2 px-4 text-sm">
+                      {saving === match.id ? "..." : "Guardar"}
                     </button>
                   </div>
                 </div>
@@ -240,12 +268,30 @@ export default function AdminPage() {
             );
           })}
         </div>
+
       ) : tab === "knockout" ? (
         <div className="space-y-4">
           {KNOCKOUT_MATCHES.map((config) => {
             const inp = knockoutInputs[config.id] ?? { name: "", flag: "", enabled: false, arg: "", opp: "", final: false };
-            const isSavingCfg = saving === config.id + "-cfg";
-            const isSavingRes = saving === config.id + "-res";
+            const isEditing = editing.has(config.id);
+
+            if (inp.final && !isEditing) {
+              return (
+                <div key={config.id} className="card flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-geo font-bold uppercase tracking-wide mb-0.5">{config.stageLabel}</p>
+                    <p className="font-bold text-slate-700">
+                      🇦🇷 Argentina <span className="text-geo font-black">{inp.arg} – {inp.opp}</span> {inp.flag} {inp.name}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">✓ Final</span>
+                    <button onClick={() => toggleEditing(config.id)} className="text-xs text-slate-400 hover:text-slate-600 underline">Editar</button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={config.id} className="card">
                 <div className="flex items-center justify-between mb-4">
@@ -254,18 +300,19 @@ export default function AdminPage() {
                     <p className="text-xs text-slate-400">{config.date} · {config.venue}</p>
                     <p className="text-xs text-slate-400 mt-0.5 italic">{config.bracketDescription}</p>
                   </div>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={inp.enabled}
-                      onChange={(e) => setKnockoutInputs((p) => ({ ...p, [config.id]: { ...p[config.id], enabled: e.target.checked } }))}
-                      className="w-5 h-5 accent-geo" />
-                    <span className={`text-sm font-bold ${inp.enabled ? "text-emerald-600" : "text-slate-400"}`}>
-                      {inp.enabled ? "Habilitado" : "Deshabilitado"}
-                    </span>
-                  </label>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={inp.enabled}
+                        onChange={(e) => setKnockoutInputs((p) => ({ ...p, [config.id]: { ...p[config.id], enabled: e.target.checked } }))}
+                        className="w-5 h-5 accent-geo" />
+                      <span className={`text-sm font-bold ${inp.enabled ? "text-emerald-600" : "text-slate-400"}`}>
+                        {inp.enabled ? "Habilitado" : "Deshabilitado"}
+                      </span>
+                    </label>
+                    {isEditing && <button onClick={() => toggleEditing(config.id)} className="text-xs text-slate-400 underline">Cancelar</button>}
+                  </div>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Rival */}
                   <div className="bg-stone-50 rounded-xl p-3">
                     <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Rival</p>
                     <div className="flex gap-2 mb-2">
@@ -279,12 +326,10 @@ export default function AdminPage() {
                     <input type="text" value={inp.actualTeam} placeholder="ID del equipo (ej: ESP, BRA)"
                       onChange={(e) => setKnockoutInputs((p) => ({ ...p, [config.id]: { ...p[config.id], actualTeam: e.target.value } }))}
                       className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mb-2" />
-                    <button onClick={() => saveKnockoutConfig(config.id)} disabled={isSavingCfg} className="btn-primary w-full py-1.5 text-sm">
-                      {isSavingCfg ? "..." : "Guardar rival"}
+                    <button onClick={() => saveKnockoutConfig(config.id)} disabled={saving === config.id + "-cfg"} className="btn-primary w-full py-1.5 text-sm">
+                      {saving === config.id + "-cfg" ? "..." : "Guardar rival"}
                     </button>
                   </div>
-
-                  {/* Resultado */}
                   <div className="bg-stone-50 rounded-xl p-3">
                     <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">Resultado</p>
                     <div className="flex items-center gap-2 mb-2">
@@ -302,8 +347,8 @@ export default function AdminPage() {
                         Final
                       </label>
                     </div>
-                    <button onClick={() => saveKnockoutResult(config.id)} disabled={isSavingRes || inp.arg === "" || inp.opp === ""} className="btn-primary w-full py-1.5 text-sm">
-                      {isSavingRes ? "..." : "Guardar resultado"}
+                    <button onClick={() => saveKnockoutResult(config.id)} disabled={saving === config.id + "-res" || inp.arg === "" || inp.opp === ""} className="btn-primary w-full py-1.5 text-sm">
+                      {saving === config.id + "-res" ? "..." : "Guardar resultado"}
                     </button>
                   </div>
                 </div>
@@ -311,21 +356,47 @@ export default function AdminPage() {
             );
           })}
         </div>
+
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {GROUPS.map((group) => {
             const inp = groupInputs[group.id] ?? { first: "", second: "", final: false };
-            const isSaving = saving === group.id;
+            const result = groupResults.find((r) => r.group_id === group.id);
+            const isEditing = editing.has(group.id);
+
+            if (inp.final && !isEditing) {
+              const t = (id: string | null) => group.teams.find((t) => t.id === id);
+              const f = t(result?.first_team ?? null);
+              const s = t(result?.second_team ?? null);
+              const th = t(result?.third_team ?? null);
+              return (
+                <div key={group.id} className="card">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-slate-700">Grupo {group.id}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">✓ Final</span>
+                      <button onClick={() => toggleEditing(group.id)} className="text-xs text-slate-400 hover:text-slate-600 underline">Editar</button>
+                    </div>
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    {f && <p className="text-slate-700"><span className="text-slate-400 text-xs w-5 inline-block">1°</span> {f.flag} {f.name}</p>}
+                    {s && <p className="text-slate-700"><span className="text-slate-400 text-xs w-5 inline-block">2°</span> {s.flag} {s.name}</p>}
+                    {th && <p className="text-slate-500"><span className="text-slate-400 text-xs w-5 inline-block">3°</span> {th.flag} {th.name}</p>}
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div key={group.id} className="card">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-slate-700">Grupo {group.id}</h3>
-                  {inp.final && <span className="text-xs bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">✓ Final</span>}
+                  {isEditing && <button onClick={() => toggleEditing(group.id)} className="text-xs text-slate-400 underline">Cancelar</button>}
                 </div>
                 <div className="space-y-2 mb-3">
                   {(["first", "second"] as const).map((pos) => (
                     <div key={pos} className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-slate-400 w-6">{pos === "first" ? "1°" : "2°"}</span>
+                      <span className="text-xs font-semibold text-slate-400 w-5">{pos === "first" ? "1°" : "2°"}</span>
                       <select value={inp[pos]}
                         onChange={(e) => setGroupInputs((p) => ({ ...p, [group.id]: { ...p[group.id], [pos]: e.target.value } }))}
                         className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1.5 focus:border-geo focus:outline-none">
@@ -346,8 +417,8 @@ export default function AdminPage() {
                       className="w-4 h-4 accent-geo" />
                     <span className="text-slate-600 text-xs">Final</span>
                   </label>
-                  <button onClick={() => saveGroup(group.id)} disabled={isSaving || !inp.first || !inp.second} className="btn-primary py-1.5 px-3 text-sm">
-                    {isSaving ? "..." : "Guardar"}
+                  <button onClick={() => saveGroup(group.id)} disabled={saving === group.id || !inp.first || !inp.second} className="btn-primary py-1.5 px-3 text-sm">
+                    {saving === group.id ? "..." : "Guardar"}
                   </button>
                 </div>
               </div>
