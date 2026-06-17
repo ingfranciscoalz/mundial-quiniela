@@ -141,13 +141,14 @@ export default function AdminPage() {
                 const res = await fetch("/api/sync-results");
                 const json = await res.json();
                 setSaving(null);
-                if (json.synced?.length > 0) {
-                  setSyncMsg(`✅ Sincronizado: ${json.synced.join(", ")}`);
-                  await load();
-                } else if (json.error) {
-                  setSyncMsg(`❌ Error: ${json.error}`);
+                if (json.error) {
+                  setSyncMsg(`❌ ${json.error}`);
                 } else {
-                  setSyncMsg("ℹ️ Sin partidos nuevos finalizados");
+                  const parts = [];
+                  if (json.matches?.length) parts.push(`${json.matches.length} partido(s)`);
+                  if (json.groups?.length) parts.push(`${json.groups.length} grupo(s)`);
+                  setSyncMsg(parts.length ? `✅ ${parts.join(" · ")} sincronizados` : "ℹ️ Sin novedades");
+                  await load();
                 }
                 setTimeout(() => setSyncMsg(null), 6000);
               }}

@@ -24,24 +24,17 @@ const DATE_TO_MATCH: Record<string, { id: string; isKnockout: boolean }> = {
   "2026-07-20": { id: "ARG-FINAL", isKnockout: true  },
 };
 
-export async function GET(req: NextRequest) {
-  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "FOOTBALL_DATA_API_KEY not configured" }, { status: 500 });
-  }
+// football-data.org uses "GROUP_A" → we use "A"
+function apiGroupToId(apiGroup: string): string {
+  return apiGroup.replace("GROUP_", "");
+}
 
+async function syncMatches(apiKey: string) {
   const res = await fetch(
     `https://api.football-data.org/v4/teams/${ARGENTINA_ID}/matches?competitions=WC&status=FINISHED`,
-    {
-      headers: { "X-Auth-Token": apiKey },
-      cache: "no-store",
-    }
+    { headers: { "X-Auth-Token": apiKey }, cache: "no-store" }
   );
-
-  if (!res.ok) {
-    const text = await res.text();
-    return NextResponse.json({ error: `Football API error ${res.status}`, detail: text }, { status: 502 });
-  }
+  if (!res.ok) throw new Error(`Matches API ${res.status}: ${await res.text()}`);
 
   const data = await res.json();
   const supabase = getSupabase();
@@ -58,7 +51,6 @@ export async function GET(req: NextRequest) {
     const isHomeArg = match.homeTeam?.id === ARGENTINA_ID;
     const argScore: number = isHomeArg ? match.score.fullTime.home : match.score.fullTime.away;
     const oppScore: number = isHomeArg ? match.score.fullTime.away : match.score.fullTime.home;
-
     if (argScore == null || oppScore == null) continue;
 
     if (mapped.isKnockout) {
@@ -93,9 +85,72 @@ export async function GET(req: NextRequest) {
     synced.push(`${mapped.id}: ${argScore}-${oppScore}`);
   }
 
-  if (synced.length > 0) {
-    await recalcAllPoints();
+  return synced;
+}
+
+async function syncGroups(apiKey: string) {
+  const res = await fetch(
+    "https://api.football-data.org/v4/competitions/WC/standings",
+    { headers: { "X-Auth-Token": apiKey }, cache: "no-store" }
+  );
+  if (!res.ok) throw new Error(`Standings API ${res.status}: ${await res.text()}`);
+
+  const data = await res.json();
+  const supabase = getSupabase();
+  const synced: string[] = [];
+
+  for (const standing of data.standings ?? []) {
+    if (standing.type !== "TOTAL") continue;
+
+    const groupId = apiGroupToId(standing.group ?? "");
+    if (!groupId) continue;
+
+    const table: { position: number; team: { tla: string }; playedGames: number }[] =
+      standing.table ?? [];
+
+    // Only mark as final when all 4 teams have played all 3 group matches
+    const isFinal = table.length >= 4 && table.every((row) => row.playedGames >= 3);
+
+    const first = table.find((r) => r.position === 1)?.team?.tla ?? null;
+    const second = table.find((r) => r.position === 2)?.team?.tla ?? null;
+
+    if (!first || !second) continue;
+
+    await supabase.from("group_results").upsert(
+      {
+        group_id: groupId,
+        first_team: first,
+        second_team: second,
+        is_final: isFinal,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "group_id" }
+    );
+
+    synced.push(`Grupo ${groupId}: 1°${first} 2°${second}${isFinal ? " ✓" : " (en curso)"}`);
   }
 
-  return NextResponse.json({ ok: true, synced });
+  return synced;
+}
+
+export async function GET(_req: NextRequest) {
+  const apiKey = process.env.FOOTBALL_DATA_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "FOOTBALL_DATA_API_KEY not configured" }, { status: 500 });
+  }
+
+  try {
+    const [matchesSynced, groupsSynced] = await Promise.all([
+      syncMatches(apiKey),
+      syncGroups(apiKey),
+    ]);
+
+    if (matchesSynced.length > 0 || groupsSynced.some((g) => g.includes("✓"))) {
+      await recalcAllPoints();
+    }
+
+    return NextResponse.json({ ok: true, matches: matchesSynced, groups: groupsSynced });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 502 });
+  }
 }
