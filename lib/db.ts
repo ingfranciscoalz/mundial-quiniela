@@ -75,6 +75,32 @@ export async function upsertScorePrediction(
   predictedOpponentTeam: string | null = null
 ): Promise<boolean> {
   const supabase = getSupabase();
+
+  // Calculate correct points if a final result already exists
+  let pts = 0;
+  if (KNOCKOUT_IDS.has(matchId)) {
+    const { data: km } = await supabase
+      .from("knockout_matches")
+      .select("argentina_score, opponent_score, actual_opponent_team, is_final")
+      .eq("match_id", matchId)
+      .single();
+    if (km?.is_final && km.argentina_score != null && km.opponent_score != null) {
+      pts = calcKnockoutPoints(
+        predictedArgentina, predictedOpponent, predictedOpponentTeam,
+        km.argentina_score, km.opponent_score, km.actual_opponent_team
+      );
+    }
+  } else {
+    const { data: mr } = await supabase
+      .from("match_results")
+      .select("argentina_score, opponent_score, is_final")
+      .eq("match_id", matchId)
+      .single();
+    if (mr?.is_final && mr.argentina_score != null && mr.opponent_score != null) {
+      pts = calcMatchPoints(predictedArgentina, predictedOpponent, mr.argentina_score, mr.opponent_score);
+    }
+  }
+
   const { error } = await supabase.from("score_predictions").upsert(
     {
       participant_id: participantId,
@@ -82,7 +108,7 @@ export async function upsertScorePrediction(
       predicted_argentina: predictedArgentina,
       predicted_opponent: predictedOpponent,
       predicted_opponent_team: predictedOpponentTeam,
-      points: 0,
+      points: pts,
     },
     { onConflict: "participant_id,match_id" }
   );
@@ -108,6 +134,18 @@ export async function upsertGroupPrediction(
   thirdTeam: string | null = null
 ): Promise<boolean> {
   const supabase = getSupabase();
+
+  // Calculate correct points if a final result already exists
+  const { data: gr } = await supabase
+    .from("group_results")
+    .select("first_team, second_team, is_final")
+    .eq("group_id", groupId)
+    .single();
+
+  const pts = (gr?.is_final && gr.first_team && gr.second_team)
+    ? calcGroupPoints(firstTeam, secondTeam, gr.first_team, gr.second_team)
+    : 0;
+
   const { error } = await supabase.from("group_predictions").upsert(
     {
       participant_id: participantId,
@@ -115,7 +153,7 @@ export async function upsertGroupPrediction(
       first_team: firstTeam,
       second_team: secondTeam,
       third_team: thirdTeam,
-      points: 0,
+      points: pts,
     },
     { onConflict: "participant_id,group_id" }
   );

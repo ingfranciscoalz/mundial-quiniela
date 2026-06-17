@@ -12,7 +12,7 @@ import {
   upsertKnockoutMatch,
   upsertKnockoutResult,
 } from "@/lib/db";
-import { ARGENTINA_MATCHES, OTHER_GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
+import { ARGENTINA_MATCHES, GROUPS, KNOCKOUT_MATCHES } from "@/lib/worldcupData";
 import type { MatchResult, GroupResult, KnockoutMatchDB } from "@/types";
 
 type AdminTab = "matches" | "knockout" | "groups";
@@ -50,7 +50,7 @@ export default function AdminPage() {
     setMatchInputs(mi);
 
     const gi: typeof groupInputs = {};
-    for (const g of OTHER_GROUPS) {
+    for (const g of GROUPS) {
       const r = gr.find((r) => r.group_id === g.id);
       gi[g.id] = { first: r?.first_team ?? "", second: r?.second_team ?? "", final: r?.is_final ?? false };
     }
@@ -266,7 +266,7 @@ export default function AdminPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {OTHER_GROUPS.map((group) => {
+          {GROUPS.map((group) => {
             const inp = groupInputs[group.id] ?? { first: "", second: "", final: false };
             const isSaving = saving === group.id;
             return (
