@@ -111,8 +111,9 @@ async function syncGroups(apiKey: string) {
     // Only mark as final when all 4 teams have played all 3 group matches
     const isFinal = table.length >= 4 && table.every((row) => row.playedGames >= 3);
 
-    const first = table.find((r) => r.position === 1)?.team?.tla ?? null;
+    const first  = table.find((r) => r.position === 1)?.team?.tla ?? null;
     const second = table.find((r) => r.position === 2)?.team?.tla ?? null;
+    const third  = table.find((r) => r.position === 3)?.team?.tla ?? null;
 
     if (!first || !second) continue;
 
@@ -121,6 +122,7 @@ async function syncGroups(apiKey: string) {
         group_id: groupId,
         first_team: first,
         second_team: second,
+        third_team: third,
         is_final: isFinal,
         updated_at: new Date().toISOString(),
       },

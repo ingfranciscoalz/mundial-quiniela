@@ -84,6 +84,7 @@ export interface GroupResult {
   group_id: string;
   first_team: string | null;
   second_team: string | null;
+  third_team: string | null;
   is_final: boolean;
 }
 

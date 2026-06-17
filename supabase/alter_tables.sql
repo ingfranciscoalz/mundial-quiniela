@@ -25,5 +25,9 @@ ALTER TABLE group_predictions
 ALTER TABLE group_predictions
   ADD CONSTRAINT group_predictions_unique UNIQUE (participant_id, group_id);
 
+-- Agregar tercero real en resultados de grupos (para sync API)
+ALTER TABLE group_results
+  ADD COLUMN IF NOT EXISTS third_team TEXT;
+
 -- Borrar todos los usuarios y predicciones
 -- TRUNCATE TABLE bracket_predictions, score_predictions, group_predictions, participants RESTART IDENTITY CASCADE;
