@@ -26,9 +26,9 @@ const DATE_TO_MATCH: Record<string, { id: string; isKnockout: boolean }> = {
   "2026-07-20": { id: "ARG-FINAL", isKnockout: true  },
 };
 
-// football-data.org uses "GROUP_A" → we use "A"
+// football-data.org uses "GROUP_A" or "Group A" → we use "A"
 function apiGroupToId(apiGroup: string): string {
-  return apiGroup.replace("GROUP_", "");
+  return apiGroup.replace("GROUP_", "").replace("Group ", "");
 }
 
 async function syncMatches(apiKey: string) {
